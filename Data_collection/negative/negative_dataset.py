@@ -14,7 +14,12 @@ from requests.adapters import HTTPAdapter, Retry
 import json
 import re
 
-url = "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29%29"
+"""The following url was generate using the query:
+
+(taxonomy_id:2759) AND (existence:1) AND (reviewed:true) AND (fragment:false) AND (length:[40 TO *]) AND ((cc_scl_term_exp:SL-0091) OR (cc_scl_term_exp:SL-0191) OR (cc_scl_term_exp:SL-0173) OR (cc_scl_term_exp:SL-0039) OR (cc_scl_term_exp:SL-0209) OR (cc_scl_term_exp:SL-0204)) NOT (ft_signal:*)
+"""
+
+url = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29%29"
 batch_size = 500
 
 retries = Retry(total=5, backoff_factor=0.25, status_forcelist=[500, 502, 503, 504])
@@ -51,6 +56,7 @@ def extract_fields(entry):
     accession = entry.get("primaryAccession", "")
     organism_name = entry.get("organism", {}).get("scientificName", "")
     length = entry.get("sequence", {}).get("length", 0)
+    sequence = entry.get("sequence", {}).get("value", "")
 
     #kindom
     lineage = entry.get("organism", {}).get("lineage", [])
@@ -76,7 +82,7 @@ def extract_fields(entry):
 
                 continue
 
-    return (accession, organism_name, kingdom, length, early_trans)
+    return (accession, organism_name, kingdom, length, early_trans, sequence)
 
 def get_dataset(search_url, extract_function, output_file_name):
     filtered_json = []
@@ -95,10 +101,21 @@ def get_dataset(search_url, extract_function, output_file_name):
 
     print(n_total, n_filtered)
 
-    with open(output_file_name, "w") as ofs:
+    tsv = f"{output_file_name}.tsv"
+
+    fasta = f"{output_file_name}.fasta"
+
+    with open(tsv, "w") as ofs:
         for entry in filtered_json:
             # Print the fields in TSV format
-            print(*entry, sep="\t", file=ofs)
+            print(*entry[:5], sep="\t", file=ofs)
 
-output_file = "dataset_neg.tsv"
+
+    with open(fasta, "w") as ofs:
+      for entry in filtered_json:
+            # Print the fields in FASTA format
+            print(f">{entry[0]}", file=ofs)
+            print(entry[-1], file=ofs)
+
+output_file = "dataset_neg"
 get_dataset(url, extract_fields, output_file)
