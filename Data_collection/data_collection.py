@@ -23,11 +23,14 @@ def extract_fields_positive(entry):
     euk_kingdom=entry['organism']['lineage'][1]
     seq_len=entry['sequence']['length']
     sequence = entry.get("sequence", {}).get("value", "")
+    class_= 1
+    early_trans = False
+
     for i in entry['features']:
       if i['type']=='Signal':
         cleavage_pos = i['location']['end']['value']
 
-    return [UPaccession, org_name, euk_kingdom, seq_len, cleavage_pos, sequence]
+    return [class_, UPaccession, org_name, euk_kingdom, seq_len, cleavage_pos, early_trans, sequence]
 
 
 
@@ -41,6 +44,9 @@ def extract_fields_negative(entry):
     organism_name = entry.get("organism", {}).get("scientificName", "")
     length = entry.get("sequence", {}).get("length", 0)
     sequence = entry.get("sequence", {}).get("value", "")
+    class_ = 0
+    cleavage_pos = 0
+
 
     #kindom
     lineage = entry.get("organism", {}).get("lineage", [])
@@ -66,7 +72,7 @@ def extract_fields_negative(entry):
 
                 continue
 
-    return (accession, organism_name, kingdom, length, early_trans, sequence)
+    return (class_, accession, organism_name, kingdom, length, cleavage_pos, early_trans, sequence)
 
 
 
@@ -144,12 +150,12 @@ def get_dataset(search_url, extract_function, output_file_name, *filter_function
     with open(tsv, "w") as ofs:
         for entry in filtered_json:
             # Print the fields in TSV format
-            print(*entry[:5], sep="\t", file=ofs)
+            print(*entry[:7], sep="\t", file=ofs)
 
     with open(fasta, "w") as ofs:
         for entry in filtered_json:
             # Print the fields in FASTA format
-            print(f">{entry[0]}", file=ofs)
+            print(f">{entry[1]}", file=ofs)
             print(entry[-1], file=ofs)
 
 
@@ -157,11 +163,11 @@ def get_dataset(search_url, extract_function, output_file_name, *filter_function
 
 if __name__ == "__main__":
     batch_size = 500
-    url_negative = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29%29"
+    url_negative = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29"
     url_positive = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
 
-    output_file_negative = "negative_set"
-    output_file_positive = "positive_set"
+    output_file_negative = "/home/um40/LB2_project_Group_1/Data_collection/negative/negative_set"
+    output_file_positive = "/home/um40/LB2_project_Group_1/Data_collection/positive/positive_set"
 
     get_dataset(url_negative, extract_fields_negative, output_file_negative)
     get_dataset(url_positive, extract_fields_positive, output_file_positive, filter_function_positive)
