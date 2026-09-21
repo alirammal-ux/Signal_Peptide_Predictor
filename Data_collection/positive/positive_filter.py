@@ -56,13 +56,22 @@ output_file = "positive_set.tsv"
 def extract_fields(entry):
     UPaccession=entry['primaryAccession']
     org_name=entry['organism']['scientificName']
-    euk_kingdom=entry['organism']['lineage'][1]
     seq_len=entry['sequence']['length']
     for i in entry['features']:
       if i['type']=='Signal':
         cleavage_pos = i['location']['end']['value']
 
-    return [UPaccession, org_name, euk_kingdom, seq_len, cleavage_pos]
+    lineage = entry.get("organism", {}).get("lineage", [])
+    if "Metazoa" in lineage:
+        kingdom = "Metazoa"
+    elif "Fungi" in lineage:
+        kingdom = "Fungi"
+    elif "Viridiplantae" in lineage:
+        kingdom = "Plants"
+    else:
+        kingdom = "Other"
+
+    return [UPaccession, org_name, kingdom, seq_len, cleavage_pos]
 
 def extract_fasta(entry):
     UPaccession=entry['primaryAccession']
@@ -110,8 +119,8 @@ if __name__=="__main__":
     url = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
     # We set the name of the output file, we want TSV output
     output_file = "positive_set"
-# compressed=false --> in order to be able to manage the response
-# format=json --> (NOT fasta)   
+    # compressed=false --> in order to be able to manage the response
+    # format=json --> (NOT fasta)   
     get_dataset(url, filter_function, extract_fields, extract_fasta, output_file)
 
   

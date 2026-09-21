@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split,StratifiedKFold
 import pandas as pd
 import numpy as np
 from sys import argv
+import pandas as pd
 
 random_seed=42
 
@@ -20,6 +21,8 @@ if len (argv) < 3 :
 else:
   d1 = argv[1]
   d2 = argv[2]
+
+
 
 column_names = ["class", "ID", "organism_name", "kingdom", "length", "cleavage_pos", "early_trans"]
 
@@ -46,12 +49,20 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_seed)
 
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_seed)
+df['fold'] = -1
+
 for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train), start=1):
 
     X_fold_train, X_fold_val = X_train.iloc[train_index], X_train.iloc[val_index]
     y_fold_train, y_fold_val = y_train.iloc[train_index], y_train.iloc[val_index]
 
-    print(X_fold_train.shape)
-    print(X_fold_val.shape)
-    print(y_fold_train.shape)
-    print(y_fold_val.shape)
+    actual_val_indices = X_train.index[val_index]
+
+    df.loc[actual_val_indices, 'fold'] = fold_idx
+
+df.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv', sep="\t")
+X_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_train.tsv', sep="\t")
+X_test.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_test.tsv', sep="\t")
+y_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/y_train.tsv', sep="\t")
+y_test.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/y_test.tsv', sep="\t")
