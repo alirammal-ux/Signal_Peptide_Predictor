@@ -25,5 +25,5 @@ if __name__=="__main__":
     new_tsv=sys.argv[3]
 
     list_ids=extract_ids_rep(cluster_reps_file)
-    
+       
     remove_redundancy(original_tsv, list_ids, new_tsv)
