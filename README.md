@@ -1,9 +1,9 @@
 # LB2_project_Group_1
-# Data collection pipeline:
+## Data collection pipeline:
 
 We started collecting the preliminary dataset as two set: positive data and negative data.
 
-## Positives:
+### Positives:
 
 In positive data we filtered proteins with *signal peptides* directly from UniprotKB using the following fields:
 - Signal peptide only with experimental evidence
@@ -19,7 +19,7 @@ We created a function called *filter_function*: it takes in input a single entry
 
 After that we have created the function called *extract_fields*, this function takes in input a single entry and return some fields of it like: UniProtAccession, Organism name, Eukaryotic kingdom (Metazoa, Fungi, Plants, Other), Protein length and the position of the signal-peptide cleavage site.
 
-## Final setup of the output 
+### Final setup of the output 
 
 In the end we obtained 2961, in this final version we organized the final tsv columns as follow:
 1. **CLASS**: whether the data come from the positive set or from the negative, positive ones has 1.
@@ -35,7 +35,7 @@ We also obtained a fasta file organized as follow:
 2. **sequence**.
 
 
-## Negatives:
+### Negatives:
 
 In negative data we filtered proteins with *no signal peptides* directly from UniprotKB by some fields:
 - Reviewed
@@ -56,7 +56,7 @@ As for positive we created a function called *extract_fields* for extract only f
 - Protein length
 - Whether a transmembrane helix starts within the first 90 residues (true / false)
 
-## Final setup of the output 
+### Final setup of the output 
 In the end we obtained exactly 19594 negative cases, in this final version we organized the tsv file as follow:
 First column says whether the data come from the positive set or from the negative, negative ones has 0.
 Second column is the UniProtAccession.
@@ -82,37 +82,41 @@ and four parameters in the case of <u>positive dataset</u>:
 + (STRING)The output file name where TSV will be saved
 
 
-#  Data Preparation Pipeline:
+##  Data Preparation Pipeline:
 
 These two dataset are new ready to be fixed about redundancy, this is removed before splitting for clean the entire dataset. Fristly we have merged positive and negative set and created an unique file, in which in the first column we put the variable class that says whether the protein comes from the positive (1) or from the negative (0). For remove nearly identical sequences, idenfity representative sequences and build non-redundant tranining sets. The command used is: 
-"seqs easy-cluster input.fa cluster-results tmp \ --min-seq-id 0.3 -c 0.4 --cov-mode 0 --cluster-mode 1"
+```
+seqs easy-cluster input.fa cluster-results tmp \ --min-seq-id 0.3 -c 0.4 --cov-mode 0 --cluster-mode 1
+```
 That says we have used a 30% sequence-identity threshold and a 40% length-coverage threshold. 
 
 
-After that we splitted randomly this set in two further sets each, specifically with 80% in one called training set and the remaining (20%) in other one called test set, doing this for preserve positive/negative ratio in each subset we put "stratify=y", so that the training set and test set maintain the same proportion.
+After that we splitted randomly this set in two further sets each, specifically with 80% in one called training set and the remaining (20%) in other one called test set, doing this for preserve positive/negative ratio in each subset we put ``stratify = y``, so that the training set and test set maintain the same proportion.
 At this point we have one training and one benchmark set, these latter ones will be used in the end for look how our trained models works. In the training set we have done the 5-fold CV using StratifiedKfold, that means split the set into 5 subsets, this is done for evaluating the model's performance more reliably. We have done using a for cycle, in which with the command 
-for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train), start=1): 
-fold_idx (for the actual number of the fold 1-5)
-train_index (list of positional indexes "ID" of the rows used for the training in this fold)
-val_index (list of positional indexes "ID" of the rows used for the validation in this fold)
+``for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train), start=1)``: 
+- fold_idx (for the actual number of the fold 1-5)
+- train_index (list of positional indexes "ID" of the rows used for the training in this fold)
+- val_index (list of positional indexes "ID" of the rows used for the validation in this fold)
 
-X_fold_train, X_fold_val = X_train.iloc[train_index], X_train.iloc[val_index]
+``X_fold_train, X_fold_val = X_train.iloc[train_index], X_train.iloc[val_index]``
 we put in X_fold_train all the observations rows associated with the value obtained in train_index, and in X_fold_val the data associated with the value found in val_index, for the validation fold.
 So at this point given than we use 5 folds we have 80% of observations in the fold for the training, and the remaining 20% observations are in the fold for the validation.
 
 Afterwards, we did the same for the dataset with only the variable "class"
-y_fold_train, y_fold_val = y_train.iloc[train_index], y_train.iloc[val_index]
+``y_fold_train, y_fold_val = y_train.iloc[train_index], y_train.iloc[val_index]``
 
 
-actual_val_indices = X_train.index[val_index]
+``actual_val_indices = X_train.index[val_index]``
 In this step we have converted the positional index assigned before in the actual indexes of the original data.
 
 In the end with the command 
-df.loc[actual_val_indices, 'fold'] = fold_idx
+``df.loc[actual_val_indices, 'fold'] = fold_idx``
 we create the column called "fold" in which is written the number of the group to which it belongs, "-1" if it's from the test set.
 
 
 
 
 In the file data_collection.py there's the entire pipeline, for use it from the terminal the usage is:
+```
 python3 data_collection.py option(pos,neg,all) output_filename
+```
