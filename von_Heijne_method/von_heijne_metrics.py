@@ -180,6 +180,7 @@ if __name__=='__main__':
 
     out_dir=Path(args.out_dir)
     df_background=pd.read_table(args.df_back)
+    df_background.sort_values(by='aa',inplace=True)
     fasta=args.fasta
     df=pd.read_table(args.data)
 
