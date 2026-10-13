@@ -1,3 +1,4 @@
+
 # Von Heijne and evaluation of the method
 The Von Heijne method was chosen as a possible method to implement our model. The workflow is contained in the files  _matrix.ipynb_  and _von_heine_metrics.py_.
 ## Von Heijne method:
@@ -20,7 +21,7 @@ Once the positive sequences were extracted, with the function _create-pswm_ the 
 
 Said function creates a numpy array with 15 rows and 20 columns:
 
--  one row for each position 
+- one row for each position 
 - one column for each ammoinoacid. 
 
 Every cell is initiated at 1.
