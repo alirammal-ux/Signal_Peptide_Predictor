@@ -61,7 +61,7 @@ for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train),
 
     df.loc[actual_val_indices, 'fold'] = fold_idx
 
-df.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv', sep="\t")
+df.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv', sep="\t",index=False)
 X_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_train.tsv', sep="\t")
 X_test.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_test.tsv', sep="\t")
 y_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/y_train.tsv', sep="\t")
