@@ -68,21 +68,15 @@ Then positive and negative dataset were merged and split randomly in trainig and
 
 In this step we describe the datasets with respect some features (SP lengths, protein lengths, amino-acid composition of SPs vs a background, taxonomic classification and SP cleavege sites) to ensure that no biases has been introduced during the splitting (in particular between training and test set).
 
+## Feature Extraction and Selection:
+Features are extracted using chemico-phisical scales from ProtScale and AAindex. The scales are applied through sliding window to the first 40 residues of each protein sequence.
 
-Da eliminare:
-In particular for proteins lengths and SP lengths histogram and density plots have been done, plus a boxplot for the first one and a scatterplot for the second one.
-For the amino-acid composition of SP vs a background SwissProt a combined barplot is been done.
-Pie charts and a barplot have been done for the taxonomy variable, for the kingdom and for species.
-Finally for the SP cleavege sites from only the sequences containing them (positive) the cleavege site region have been aligned (-13,+2) and then a sequence logo created. 
+From the hydrobhobicity profile of each sequence, we extract the following features:
+- hydrophobicity score of the firs maximum peak
+- position in the sequence of the first maximum peak
+- length (= number of positions) of the region around the peak with hydrophobicity score upper a threshold
+- drop in hydrophobicity = hydrophobicity score of the peak minus the hidrophobicity score of the 40° residue
 
-
-## SP detection 
-For the detection of the signal-peptide the von Heijne method it has been adopted.
-
-
+Other 20 features are computed as the frequency of each residue in the first n residues in the protein sequence, where n is the median SP length in the training set (recomputed on the training folds of each CV split).
 
 
-In the file data_collection.py there's the entire pipeline, for use it from the terminal the usage is:
-```
-python3 data_collection.py option(pos,neg,all) output_filename
-```
