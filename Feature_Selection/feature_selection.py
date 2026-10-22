@@ -16,11 +16,13 @@ RANDOM_STATE = 111
 
 X=pd.read_csv('/home/um40/LB2_project_Group_1/Feature_Selection/feature.csv')
 
-X.sort_values(by='id', inplace=True)
+X=X.sort_values(by='id').reset_index(drop=True)
 
 df=pd.read_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv',sep='\t')
 
-df = df.sort_values(by='ID')
+df = df.sort_values(by='ID').reset_index(drop=True)
+
+assert (X['id'].values == df['ID'].values).all(),'index do not match'  
 
 y= df['class']
 X= X.drop(columns='id', axis=1)
