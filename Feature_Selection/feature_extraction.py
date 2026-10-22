@@ -5,34 +5,13 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.SeqUtils import ProtParamData 
 from aaindex_parse import parse_aaindex_file
 from collections import Counter
+from pathlib import Path
 import argparse
 
 
+HERE = Path(__file__).resolve().parent   # Feature_Selection/
+ROOT = HERE.parent                       # repository root
 
-#Amino acid scale: Transmembrane tendency ProtScale
-
-dict_f['tt'] = {
-    'A':  0.380,  # Ala
-    'R': -2.570,  # Arg
-    'N': -1.620,  # Asn
-    'D': -3.270,  # Asp
-    'C': -0.300,  # Cys
-    'Q': -1.840,  # Gln
-    'E': -2.900,  # Glu
-    'G': -0.190,  # Gly
-    'H': -1.440,  # His
-    'I':  1.970,  # Ile
-    'L':  1.820,  # Leu
-    'K': -3.460,  # Lys
-    'M':  1.400,  # Met
-    'F':  1.980,  # Phe
-    'P': -1.440,  # Pro
-    'S': -0.530,  # Ser
-    'T': -0.320,  # Thr
-    'W':  1.530,  # Trp
-    'Y':  0.490,  # Tyr
-    'V':  1.460,  # Val
-}
 
 def profile_stat(profile):
     return max(profile),np.argmax(profile)/40
@@ -40,14 +19,17 @@ def profile_stat(profile):
 
 
 AA_keys="ACDEFGHIKLMNPQRSTVWY"
+N_TER=22 # composition window = median SP length in the training set (22 in every CV split)
 def count_aa(seq):
 
     dict_aa= Counter({aa: 0 for aa in AA_keys})
 
     for aa in seq:
-        dict_aa[aa]+=1
+        if aa in AA_keys:
+            dict_aa[aa]+=1
 
-    return list(dict_aa.values())
+    # fixed column order (A,C,D,...) and frequencies instead of raw counts
+    return [dict_aa[aa]/len(seq) for aa in AA_keys]
 
 
 
@@ -121,7 +103,7 @@ def extract_f(seq,dict_f):
 
 
     #___N-ter_comp_____
-    n_ter_comp=count_aa(seq)
+    n_ter_comp=count_aa(seq[:N_TER])
 
     return [kd_max,kd_max_p,kd_len,kd_dekay,max_charge_pos,max_charge_pos_p,max_charge_neg,max_charge_neg_p,max_nfh,max_nfh_p,max_nfb,max_nfb_p,res_vol_mean,signal_max,signal_max_p,flexibility_mean,mut_mean]+n_ter_comp
 
@@ -130,9 +112,10 @@ def extract_f(seq,dict_f):
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description="Feature Selection")
-    parser.add_argument('--scale_selected_file',type=str,default='/home/um40/LB2_project_Group_1/Feature_Selection/AAindex_scales.txt')
-    parser.add_argument('--fasta',type=str,default='/home/um40/LB2_project_Group_1/von_Heijne_method/merged.fasta')
-    parser.add_argument('--aaindex_file',type=str,default='/home/um40/LB2_project_Group_1/Feature_Selection/aaindex1',help='download the file from aaindex.com')
+    parser.add_argument('--scale_selected_file',type=str,default=str(HERE/'AAindex_scales.txt'))
+    parser.add_argument('--fasta',type=str,default=str(ROOT/'von_Heijne_method'/'merged.fasta'))
+    parser.add_argument('--aaindex_file',type=str,default=str(HERE/'aaindex1'),help='download the file from aaindex.com')
+    parser.add_argument('--out',type=str,default=str(HERE/'feature.csv'),help='output csv, one row of features per protein')
     args=parser.parse_args()
 
     with open(args.scale_selected_file,'r') as f:
@@ -141,8 +124,33 @@ if __name__=='__main__':
             line=line.strip().split()
             dict_f[line[1]]=parse_aaindex_file(args.aaindex_file,line[0])
 
+    #Amino acid scale: Transmembrane tendency ProtScale
 
-    with open('feature.csv','w') as feature_file:
+    dict_f['tt'] = {
+        'A':  0.380,  # Ala
+        'R': -2.570,  # Arg
+        'N': -1.620,  # Asn
+        'D': -3.270,  # Asp
+        'C': -0.300,  # Cys
+        'Q': -1.840,  # Gln
+        'E': -2.900,  # Glu
+        'G': -0.190,  # Gly
+        'H': -1.440,  # His
+        'I':  1.970,  # Ile
+        'L':  1.820,  # Leu
+        'K': -3.460,  # Lys
+        'M':  1.400,  # Met
+        'F':  1.980,  # Phe
+        'P': -1.440,  # Pro
+        'S': -0.530,  # Ser
+        'T': -0.320,  # Thr
+        'W':  1.530,  # Trp
+        'Y':  0.490,  # Tyr
+        'V':  1.460,  # Val
+    }
+
+
+    with open(args.out,'w') as feature_file:
         print('id,max_kd,p_max_kd,kd_len,kd_dakay,max_charge_pos,max_charge_pos_p,max_charge_neg,max_charge_neg_p,nfh_max,nfh_p,nfb_max,nfb_p,res_vol_mean,signal_max,signal_max_p,flexibility_mean,mut_mean,A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y',file=feature_file)
     
         with open(args.fasta,'r') as fasta:

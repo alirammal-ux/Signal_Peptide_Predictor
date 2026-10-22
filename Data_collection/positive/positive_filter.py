@@ -1,8 +1,13 @@
+# OBSOLETE: older version kept for reference, use Data_collection/data_collection.py instead.
+# This script writes a 5-column TSV (no class column), while remove_redundancy.py and datasplitting.py
+# expect the 7-column TSV written by data_collection.py.
+
 import requests
 from requests.adapters import HTTPAdapter, Retry
 import json
 import re
 import pprint
+from pathlib import Path
 
 pp = pprint.PrettyPrinter()
 
@@ -41,25 +46,27 @@ def get_batch(batch_url):
 
 # NB: the last batch has no cursor so the last url will be empty
 
-def filter_function(entry):
-  '''This function returns true if the entry has a signal peptide that starts at the
-   beginning of the chain and is longer or equal to 14 amino acids, excluding not cleaved ones'''
+def valid_signal(entry):
+  '''This function returns the signal peptide feature that starts at the beginning of the chain and is
+   longer or equal to 14 amino acids, or None if there is none or if it is not cleaved'''
   for i in entry['features']:
     if i['type']=='Signal':
       if i['location']['start']['value']==1:
-        if i['description']=='Not Cleaved': return False
+        if i['description']=='Not Cleaved': return None
         elif i['location']['end']['value']!='?' and i['location']['end']['value']!=None and i['location']['end']['value']>13:
-          return True
+          return i
 
-# We set the name of the output file, we want TSV output
-output_file = "positive_set.tsv"
+def filter_function(entry):
+  '''This function returns true if the entry has a signal peptide that starts at the
+   beginning of the chain and is longer or equal to 14 amino acids, excluding not cleaved ones'''
+  return valid_signal(entry) is not None
+
 def extract_fields(entry):
     UPaccession=entry['primaryAccession']
     org_name=entry['organism']['scientificName']
     seq_len=entry['sequence']['length']
-    for i in entry['features']:
-      if i['type']=='Signal':
-        cleavage_pos = i['location']['end']['value']
+    # cleavage site = end of the same signal peptide accepted by filter_function
+    cleavage_pos = valid_signal(entry)['location']['end']['value']
 
     lineage = entry.get("organism", {}).get("lineage", [])
     if "Metazoa" in lineage:
@@ -100,8 +107,8 @@ def get_dataset(search_url, filter_function, extract_function,extract_fasta, out
             #   print(extract_function(entry))
 
     print(n_total, n_filtered)
-    output_file_name_tsv = output_file+".tsv"
-    output_file_name_fasta= output_file+".fasta"
+    output_file_name_tsv = output_file_name+".tsv"
+    output_file_name_fasta= output_file_name+".fasta"
     with open(output_file_name_tsv, "w") as ofs:
         for entry in filtered_json:
             # Extract the fields of interest
@@ -118,7 +125,7 @@ if __name__=="__main__":
     batch_size = 500
     url = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
     # We set the name of the output file, we want TSV output
-    output_file = "positive_set"
+    output_file = str(Path(__file__).resolve().parent / "positive_set")
     # compressed=false --> in order to be able to manage the response
     # format=json --> (NOT fasta)   
     get_dataset(url, filter_function, extract_fields, extract_fasta, output_file)

@@ -6,7 +6,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt 
 
 
-AA_keys="ACDEFGHIKLMNPQRSTVWY" 
+AA_keys="ACDEFGHIKLMNPQRSTVWY"
+
+HERE = Path(__file__).resolve().parent   # von_Heijne_method/
+ROOT = HERE.parent                       # root del repository
 
 
 def count(fasta,data,j):
@@ -59,9 +62,13 @@ def create_pswm(train_set,freq):
     for seq in train_set:
         for i in range(len(seq)):
             pos_aa=AA_keys.find(seq[i])
+            # residui non standard (X, U, ...): find() restituisce -1, che li conterebbe come Y
+            if pos_aa == -1:
+                continue
             pspm[i,pos_aa]+=1
 
-    pspm/=(len(train_set)+20)
+    # senza residui saltati ogni riga somma a N+20: equivale a dividere per (len(train_set)+20)
+    pspm/=pspm.sum(axis=1, keepdims=True)
 
 
     return np.log2(pspm/freq)
@@ -73,7 +80,7 @@ def score_seq(seq,pswm):
     final_pos=min(len(seq),90)-15
     
     #scorro sulla val_seq
-    for i in range(0,final_pos):
+    for i in range(0,final_pos+1):
         score=0
         
         #scorro sulla pswm
@@ -82,6 +89,10 @@ def score_seq(seq,pswm):
 
             #trovo col aa nella pswm 
             col=AA_keys.find(seq[row+i])
+
+            # residuo non standard (X, U, ...): non contribuisce allo score
+            if col == -1:
+                continue
             
             #aggiungo allo score della window, il valore dell aa nella pswm
             score+=pswm[row,col]
@@ -99,7 +110,8 @@ def opt_th(y_val , y_val_scores,y_test_scores):
     precision, recall, thresholds = precision_recall_curve(y_val , y_val_scores)
     f1 = (2 * precision * recall) / (precision + recall)
 
-    optimal_threshold = thresholds[np.argmax(f1)]
+    # se precision+recall=0 f1 è NaN: nanargmax lo ignora, argmax restituirebbe proprio il NaN
+    optimal_threshold = thresholds[np.nanargmax(f1)]
     # classify the test set with the chosen threshold
     # y_pred = [int(s >= optimal_threshold) for s in y_test_scores]
 
@@ -170,10 +182,10 @@ if __name__=='__main__':
     
     #argparse
     parser = argparse.ArgumentParser(description="Calcolo metriche su test set")
-    parser.add_argument('--df_back',type=str,default='/home/um40/LB2_project_Group_1/Data_analysis/aa_composition_plots/background_freq.tsv')
-    parser.add_argument('--fasta',type=str,default='/home/um40/LB2_project_Group_1/von_Heijne_method/merged.fasta')
-    parser.add_argument('--data',type=str,default='/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv',help='Cleaned_merged_dataset')
-    parser.add_argument('--out_dir',type=str,default='/home/um40/LB2_project_Group_1/von_Heijne_method')
+    parser.add_argument('--df_back',type=str,default=str(ROOT/'Data_analysis'/'aa_composition_plots'/'background_freq.tsv'))
+    parser.add_argument('--fasta',type=str,default=str(HERE/'merged.fasta'))
+    parser.add_argument('--data',type=str,default=str(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv'),help='Cleaned_merged_dataset')
+    parser.add_argument('--out_dir',type=str,default=str(HERE))
     parser.add_argument('--cm',type=str,default='n',help='y if you want a cm for run,default=n')
     parser.add_argument('--spider',type=str,default='n',help='y if you want a spider for run,default=n')
     args=parser.parse_args()

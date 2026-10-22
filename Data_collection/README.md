@@ -1,75 +1,72 @@
-# Data collection pipeline:
+# Data collection
 
-We started collecting the preliminary dataset as two set: positive data and negative data.
+`data_collection.py` downloads the positive and the negative set from the UniProtKB REST API and writes each of them as a TSV table and a FASTA file.
 
-## Positives:
+```bash
+python3 data_collection.py -pos <output prefix>
+python3 data_collection.py -neg <output prefix>
+python3 data_collection.py -all <output prefix negative> <output prefix positive>
+```
 
-In positive data we filtered proteins with *signal peptides* directly from UniprotKB using the following fields:
-- Signal peptide only with experimental evidence
-- Reviewed
-- No fragments
-- Eukaryotic proteins (Taxonomy: 2759)
-- Sequence length >= 40 residues
-- Existence of protein at protein level
+Each prefix produces `<prefix>.tsv` and `<prefix>.fasta`. The files in this folder were created, from the repository root, with:
 
-and we downloaded the [URL](https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500) for API, this first is called <u>preliminary positive dataset</u> and are present 2974 entries, from which with the following steps we filtered for others characteristics.
+```bash
+python3 Data_collection/data_collection.py -all Data_collection/negative/negative_set Data_collection/positive_set
+```
 
-We have created a function called *filter_function*: it takes in input a single entry and returns True if the entry has a signal peptide that starts at the beginning of the chain and is strictly longer than 13 amino acids, excluding not cleaved ones, and return False otherwise.
+Entries are downloaded in batches of 500, following the pagination links returned by UniProt; requests that fail with HTTP 500, 502, 503 or 504 are retried up to 5 times.
 
-After that we have created the function called *extract_fields*, this function takes in input a single entry and return some fields of it like: UniProtAccession, Organism name, Eukaryotic kingdom (Metazoa, Fungi, Plants, Other), Protein length and the position of the signal-peptide cleavage site.
+## Positive set
 
-In the end we obtained 2961, in this final version we organized the tsv file as follow:
-First column says whether the data come from the positive set or from the negative, positive ones has 1.
-Second column is the UniProtAccession.
-Third column is the Organism name.
-Fourth column is the Eukaryotic kingdom (Metazoa, Fungi, Plants, Other).
-Fifth column is the Protein length.
-Sixth column is the position of the signal-peptide cleavage site.
-Seventh column for positive is always False because it's inherent to the transmembrane filter applied for the negative dataset. 
+UniProtKB query:
 
+```
+(ft_signal_exp:*) AND (reviewed:true) AND (fragment:false) AND (taxonomy_id:2759) AND (length:[40 TO *]) AND (existence:1)
+```
 
-## Negatives:
+that is, reviewed, non-fragment eukaryotic proteins of at least 40 residues, with evidence at protein level and an experimentally verified signal peptide. The query returns 2974 entries. The script then keeps only the proteins whose signal peptide starts at residue 1, is at least 14 residues long and is not annotated as "Not Cleaved": **2961 proteins** (`positive_set.tsv`, `positive_set.fasta`). The cleavage position is the last residue of that same signal peptide.
 
-In negative data we filtered proteins with *no signal peptides* directly from UniprotKB by some fields:
-- Reviewed
-- No fragments
-- Eukaryotic proteins (Taxonomy: 2759)
-- Sequence length >= 40 residues
-- No signal peptides at any evidence at protein level
-- Experimental located in: cytosol, nucleus, mitochondrion, plastid, perozisome, cell membrane
+## Negative set
 
-and we downloaded the [URL](https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29) for API, this first is the <u>negative dataset</u> and are present 20974 entries, from which we didn't have to filter any more.
+UniProtKB query:
 
-In the case of negative we had to clean better our dataset because we have got in the first case 20974 observations, but in these were included the proteins of Golgi apparatus, endoplasmic reticulum (ER), extracellular space, or were annotated as secreted proteins. So we have created a better and more complex query and from wich we obtained 1380 less extra observations.
+```
+(taxonomy_id:2759) AND (existence:1) AND (reviewed:true) AND (fragment:false) AND (length:[40 TO *])
+AND ((cc_scl_term_exp:SL-0091) OR (cc_scl_term_exp:SL-0191) OR (cc_scl_term_exp:SL-0173) OR (cc_scl_term_exp:SL-0039) OR (cc_scl_term_exp:SL-0209) OR (cc_scl_term_exp:SL-0204))
+NOT (ft_signal:*)
+NOT ((cc_scl_term:SL-0095) OR (cc_scl_term:SL-0132) OR (cc_scl_term:SL-0112) OR (cc_scl_term:SL-0243))
+```
 
-As for positive we created a function called *extract_fields* for extract only for some fields specifically:
-- UniProt accession
-- Organism name
-- Eukaryotic kingdom (Metazoa, Fungi, Plants, Other)
-- Protein length
-- Whether a transmembrane helix starts within the first 90 residues (true / false)
+that is, the same constraints as the positives, no signal peptide at any evidence level, and an experimentally verified localization in cytosol, nucleus, mitochondrion, plastid, peroxisome or cell membrane. Proteins also annotated, at any evidence level, in the endoplasmic reticulum, Golgi apparatus, extracellular space or as secreted are excluded: this removes 1380 of the 20974 entries returned by the first version of the query, leaving **19594 proteins** (`negative/negative_set.tsv`, `negative/negative_set.fasta`). No further filter is applied.
 
-## Final setup of the output 
-In the end we obtained exactly 19594 negative cases, in this final version we organized the tsv file as follow:
-First column says whether the data come from the positive set or from the negative, negative ones has 0.
-Second column is the UniProtAccession.
-Third column is the Organism name.
-Fourth column is the Eukaryotic kingdom (Metazoa, Fungi, Plants, Other).
-Fifth column is the Protein length.
-Sixth column in this negative is always 0 because is a selection feature used only for positive data.
-Seventh column says wheter the transmembrane helix starts within the first 90 residues (True/False).
+For each negative we also record whether a helical transmembrane segment starts before residue 90 (`early_trans`), because a hydrophobic transmembrane helix near the N-terminus can be mistaken for a signal peptide.
 
+## Output format
 
-In the end we have created the function *get_dataset*, it takes three parameters in the case of <u>negative dataset</u>: 
-+ (STRING) The URL corresponding to the specific API call
-+ (FUNCTION) A function to filter entries according to specific criteria and returns directly fields we are looking for
-+ (STRING) The output file name where TSV will be saved
-and four parameters in the case of <u>positive dataset</u>:
-+ (STRING)The URL corresponding to the specific API call
-+ (FUNCTION)A filter function to filter entries according to specific criteria
-+ (FUNCTION)An extract function used to get some specific fields of interest from the JSON format.
-+ (STRING)The output file name where TSV will be saved
+TSV without header, one protein per row:
 
+| Column | Content |
+|---|---|
+| 1 | class: 1 = positive, 0 = negative |
+| 2 | UniProt accession |
+| 3 | organism name |
+| 4 | kingdom: Metazoa, Fungi, Plants (Viridiplantae) or Other |
+| 5 | protein length |
+| 6 | cleavage position, i.e. the last residue of the signal peptide (0 for negatives) |
+| 7 | `early_trans`: helical transmembrane segment starting before residue 90 (always False for positives) |
 
+The FASTA file has the UniProt accession as header and each sequence on a single line.
 
+## Main functions
 
+| Function | Role |
+|---|---|
+| `get_next_link`, `get_batch` | follow the UniProt pagination and yield one batch of results at a time |
+| `valid_signal` | returns the signal peptide that satisfies the positive criteria, or None |
+| `filter_function_positive` | True if `valid_signal` finds a signal peptide |
+| `extract_fields_positive`, `extract_fields_negative` | extract the TSV fields and the sequence from a UniProt JSON entry |
+| `get_dataset(url, extract_function, output_prefix, [filter_function])` | downloads all the batches, applies the filter if given and writes the TSV and FASTA files |
+
+## Older scripts
+
+`positive/positive_filter.py`, `negative/negative_dataset.py` and their notebooks are the first versions of the download, kept for reference. They write a 5-column TSV without the class column, which `remove_redundancy.py` and `datasplitting.py` cannot read: use `data_collection.py`.

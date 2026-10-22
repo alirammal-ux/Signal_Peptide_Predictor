@@ -10,17 +10,25 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import matthews_corrcoef
+from pathlib import Path
 
 RANDOM_STATE = 111
 
+HERE = Path(__file__).resolve().parent   # Feature_Selection/
+ROOT = HERE.parent                       # repository root
 
-X=pd.read_csv('/home/um40/LB2_project_Group_1/Feature_Selection/feature.csv')
 
-X.sort_values(by='id', inplace=True)
+X=pd.read_csv(HERE/'feature.csv')
 
-df=pd.read_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv',sep='\t')
+# sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
+# (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
+X = X.sort_values(by='id').reset_index(drop=True)
 
-df = df.sort_values(by='ID')
+df=pd.read_csv(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',sep='\t')
+
+df = df.sort_values(by='ID').reset_index(drop=True)
+
+assert X['id'].tolist() == df['ID'].tolist(), 'feature.csv and Cleaned_merged_dataset.tsv contain different IDs'
 
 y= df['class']
 X= X.drop(columns='id', axis=1)
@@ -52,8 +60,10 @@ def train_and_test(X_train, y_train, X_test, y_test, new_model, c, gamma):
     
     if X_train.shape[1] == 0:
         # no feature selected: the best we can do is predict the most frequent class
+        # (its MCC is 0: returning the accuracy would not be comparable with the other settings)
         majority = np.bincount(y_train).argmax()
-        return np.mean(y_test == majority)
+        y_pred = np.full(len(y_test), majority)
+        return matthews_corrcoef(y_test, y_pred)
     
     # 1. learn the scaling (mean, std of each column) on the TRAINING data only
     scaler = StandardScaler().fit(X_train) # --> zeta scores = subtract the mean and divide by std (dependency from data, we compute mean & std on training deta => NOT USE TEST DATA TO COMPUTE THESE METRICS)
@@ -87,7 +97,7 @@ def choose_setting(select, grid, X, y, new_model,test_fold,fold):
             val_mccs.append(mcc)
         mean_val_mcc[setting] = np.mean(val_mccs)
 
-    best = max(mean_val_mcc, key=mean_val_mcc.get)   # ties -> the first (smallest) one
+    best = max(grid, key=mean_val_mcc.get)   # ties -> the first setting in grid (= smallest k)
     # if we have two combination of features with same mcc, always choose the one with fewer features (= less model's params, less overfit)
     return best, mean_val_mcc
 
@@ -160,7 +170,7 @@ def new_svm(c,gamma):
 
 if __name__=='__main__':
     svm_rf = nested_cv("Embedded: RF importance", "embedded", select_rf, GRID,new_svm,X,y,fold)
-    with open('results_svm_rf.txt', 'w') as f:
+    with open(HERE/'results_svm_rf.txt', 'w') as f:
         for k,v in svm_rf.items():
             print(f'{k}: {v}', file=f)
 

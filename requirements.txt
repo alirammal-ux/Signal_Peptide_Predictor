@@ -1,0 +1,9 @@
+# Python >= 3.6 (the project runs on Python 3.6.11 on the course VM).
+# No upper bounds: pip picks the newest versions compatible with the Python in use.
+numpy
+pandas
+scikit-learn>=0.24
+matplotlib
+seaborn
+biopython
+requests

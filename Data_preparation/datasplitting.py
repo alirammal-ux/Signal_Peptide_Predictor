@@ -9,12 +9,14 @@ from sklearn.model_selection import train_test_split,StratifiedKFold
 import pandas as pd
 import numpy as np
 from sys import argv
-import pandas as pd
+from pathlib import Path
 
 random_seed=42
 
+HERE = Path(__file__).resolve().parent   # Data_preparation/: the output files are written here
+
 if len (argv) < 3 :
-  print("error")
+  print("usage: python3 datasplitting.py <positive_set.clean> <negative_set.clean>")
   exit()
 else:
   d1 = argv[1]
@@ -46,8 +48,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     )
 
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_seed)
-
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_seed)
 df['fold'] = -1
 
 for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train), start=1):
@@ -59,8 +59,8 @@ for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train),
 
     df.loc[actual_val_indices, 'fold'] = fold_idx
 
-df.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/Cleaned_merged_dataset.tsv', sep="\t",index=False)
-X_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_train.tsv', sep="\t")
-X_test.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/X_test.tsv', sep="\t")
-y_train.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/y_train.tsv', sep="\t")
-y_test.to_csv('/home/um40/LB2_project_Group_1/Data_preparation/y_test.tsv', sep="\t")
+df.to_csv(HERE/'Cleaned_merged_dataset.tsv', sep="\t",index=False)
+X_train.to_csv(HERE/'X_train.tsv', sep="\t")
+X_test.to_csv(HERE/'X_test.tsv', sep="\t")
+y_train.to_csv(HERE/'y_train.tsv', sep="\t")
+y_test.to_csv(HERE/'y_test.tsv', sep="\t")

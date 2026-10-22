@@ -1,92 +1,99 @@
+# Data analysis
 
+Before training any model we checked that the dataset is biologically sensible and that the training folds and the hold-out test set are comparable. Each analysis has its own notebook; the notebooks locate the repository root by themselves and save their plots in their own folder.
 
-# DATA ANALYSIS:
+| Analysis | Notebook | Outputs |
+|---|---|---|
+| Amino acid composition | `aa_composition_plots/aa_compositions.ipynb` | `background_freq.tsv`, `plots/*.png` |
+| Cleavage site | `seq_logo_cleavage_region/cleavage_site.ipynb` | `cleavage_region_train.txt`, `cleavage_region_test.txt`, then the logos made with WebLogo |
+| Protein length | `Prot_Len/protein_lengths.ipynb` | `Protein_Length_hist_dens.svg`, `Protein_Length_box.svg` |
+| SP length | `SP_len/SP_length.ipynb` | `SP_length_by_fold.svg`, `SP_length_by_kingdom.svg`, `SP_len_seq_len.svg` |
+| Taxonomy | `Taxonomy_analysis/taxonomy.ipynb` | `Kindom_Distribution`, `Species`, `Kingdom_Percentages_by_Fold`, `Kingdom_Percentages_by_Class`, `Species_Percentages_by_Class` (.png and .svg) |
 
-## 1. AMINO ACID COMPOSITION:
+## 1. Amino acid composition
 
-![alt text](aa_composition_plots/plots/aa_background_SPs.png)
+![Amino acid composition of the signal peptides vs background](aa_composition_plots/plots/aa_background_SPs.png)
 
-__Informative findings__: hydrophobic residues (L, A, V) dominate at conserved SP positions, consistent with the seq logo; polar charged residues are under-represented.
+Composition of the signal peptides (from residue 1 to the cleavage site, positive set) compared with the Swiss-Prot background. The background comes from `aa_composition_swissprot.tsv` and is saved as `background_freq.tsv`, which is also the background of the von Heijne PSWM.
 
-__Methionine bias__: enrichment is an artifact (all sequences start with Met, included in the N-terminal SP). Shifting the slice by one position removes it.
+- Hydrophobic residues (L, A, V) dominate the SP region, consistent with the sequence logos below; charged residues are under-represented.
+- The methionine enrichment is an artifact: every sequence starts with Met, which is counted as part of the SP. Starting the count from the second residue removes it.
 
+![Amino acid composition by fold](aa_composition_plots/plots/aa_composition_kfold.png)
 
-![alt text](aa_composition_plots/plots/aa_composition_kfold.png)
+![Amino acid composition, training vs test](aa_composition_plots/plots/aa_composition_train_vs_test.png)
 
-__Safety check:__ AA composition is similar between the 5 k-folds and the test
+Composition of the positive sequences (whole sequences) in each training fold and in the test set: the five folds and the test set have practically the same composition.
 
-## 2. CLEAVAGE SITE:
-Starting from SP-containing sequences, we extract the cleavage-site region [-13, +2] and use the weeb tool WebLogo to produce a sequence logo. In this way, from the aligned subsequences, we obtained a graphical representation of sequence conservation. We produce two sequence logos, one for the training set and one for the test set in order to check that they are coherent. 
+## 2. Cleavage site
 
-The two images result to be very similar. Both of them have a clear predominance of small hydrophobic residues in the first seven positions (in particular leucine, alanine and valine, where leucine is the most represented), a non conservative region in position 9 and 10, and a AXA motif in position [11, 13]. 
+From every positive sequence we extracted the region around the cleavage site, from 13 residues before to 2 after (positions −13 to +2), separately for the training folds and the test set, and built a sequence logo of each with the WebLogo web server.
 
-Sequence logo for the test set:
+Training set:
 
-![image](./seq_logo_cleavage_region/seq_logo_cleavage_region_test.svg)
+![Sequence logo of the cleavage region, training set](./seq_logo_cleavage_region/seq_logo_cleavage_region_train.svg)
 
-Sequence logo for the training set:
+Test set:
 
-![image](./seq_logo_cleavage_region/seq_logo_cleavage_region_train.svg)
+![Sequence logo of the cleavage region, test set](./seq_logo_cleavage_region/seq_logo_cleavage_region_test.svg)
 
-## 3. PROTEIN LENGTHS:
+The two logos are very similar. Small hydrophobic residues (mostly leucine, then alanine and valine) dominate the first seven positions, positions 9 and 10 are not conserved, and positions 11–13 (−3 to −1) show the **AXA motif** that precedes the cleavage site.
 
-First of all we have checked how many different lenghts our data has, in the dataset taken in consideration of 9728 entries there are present
-1687 different lengths. So the first step done was to have a look and understand the values of principal summary statistics like mean, median and variance. 
+## 3. Protein length
 
-Is turned out that the negative class has an average length of 574 aa and the median value is 425, while for the positive class an average length of 400 aa and a median value 274. The means could be affected by outliers, but it seems there is a big difference in terms of length between the two groups, in fact the observed differences between the medians tells us that the positive proteins have a shorter overall length.
+The 9728 proteins of the dataset have 1687 different lengths.
 
-For the plots a total of 30 bins was selected for the histograms to provide a balance between the resolution of the protein length distribution and the readability of the plots.
-Looking at the histogram with the density plot, it shows that for the class 0 (negative) proteins are generally longer that is because in this set has a lot of entries from different species, while for the positive group the proteins seems to be more specific because in this case we have the signal peptide.
+| Class | Mean length | Median length |
+|---|---:|---:|
+| Negatives (0) | 574.5 | 425 |
+| Positives (1) | 399.0 | 274 |
 
-![image](./Prot_Len/Protein_Length_hist_dens.svg)
+Positive proteins are clearly shorter: the medians, which are not affected by the very long outliers, differ by about 150 residues.
 
+![Histogram and density of protein length](./Prot_Len/Protein_Length_hist_dens.svg)
 
-Plotting the boxplot of the two classes, the negative class (0) has more data, in fact the boxplot is above the other one, and the mean and median are 574 and 425 respectively, while for the positive class are 400 and 274. Furthermore whiskers of the boxplot indicates that the negative class has more variance, that indicates these proteins have more different lenghts that the positive class which is more concentrared.
+Histograms with 30 bins (logarithmic x axis) and density curves, normalised separately for each class because negatives are many more than positives: negative proteins are longer and their lengths are more spread out.
 
-![image](./Prot_Len/Protein_Length_box.svg)
+![Boxplot of protein length](./Prot_Len/Protein_Length_box.svg)
 
+The boxplot confirms it: the negative class has a higher median and a wider spread, while the lengths of the positive class are more concentrated.
 
+## 4. SP length
 
-## 4. SP LENGTH:
+Positive set only; the SP length is the cleavage position, i.e. the last residue of the signal peptide. The median is 22 residues (range 14–83).
 
-The analysis of the length of the signal peptide was done only on the positive set. The cleavage position was considered as the length of the SP and plotted.
+![SP length by fold](./SP_len/SP_length_by_fold.svg)
 
-### SP length vs fold
-The distribution of the SP length was compared between sets (each cross validation and test set) to assure that the proportion is maintained. 
+The distribution is the same in every fold and in the test set, with a peak around 20 residues.
 
+![SP length by kingdom](./SP_len/SP_length_by_kingdom.svg)
 
-As in the following graph, the density plots shows the distributions is constant around 20 residues for every fold.
+Distribution of the SP length in each kingdom (density curves normalised separately for each kingdom).
 
-![image](./SP_len/SP_length_by_fold.svg )
+![SP length vs protein length](SP_len/SP_len_seq_len.png)
 
-### SP length agains protein length
+There is no apparent correlation between the length of a protein and the length of its signal peptide.
 
-The SP length was compared against the full protein length, to search for eventual biases.
+## 5. Taxonomy
 
-![image](SP_len/SP_len_seq_len.png)
+We looked at the taxonomic distribution, at kingdom and species level, to make sure the fold split did not introduce imbalances.
 
-This graph shows that there is no apparent correlation between the length of the sequence and the length of the signal peptide, probably due to an independent evolution of the two.
-## 5. TAXONOMY:
+![Kingdom distribution](./Taxonomy_analysis/Kindom_Distribution.svg)
 
-We analyzed the taxonomic distribution at both the kingdom and species levels across the datasets to ensure that our fold splitting strategy did not introduce any unintended imbalances.
-### Kindom Distribution
+Kingdoms in the whole dataset (positives and negatives); organisms outside Metazoa, Viridiplantae (Plants) and Fungi are grouped as "Other". Metazoa are the largest group (54.6%), followed by Fungi (26.2%) and Plants (17.0%).
 
+![Species composition](./Taxonomy_analysis/Species.svg)
 
+The six most represented species (*Homo sapiens*, *Saccharomyces cerevisiae*, *Arabidopsis thaliana*, *Mus musculus*, *Schizosaccharomyces pombe*, *Drosophila melanogaster*); the bar on the right splits the remaining sequences by kingdom.
 
-![image](./Taxonomy_analysis/Kindom_Distribution.svg)
+![Kingdom distribution by fold](./Taxonomy_analysis/Kingdom_Percentages_by_Fold.svg)
 
-This plot represents the kingdom distribution within the overall dataset, comprising both positive and negative samples. Species that do not belong to the three primary eukaryotic kingdoms (Metazoa, Viridiplantae, and Fungi) were grouped under the "Other" label. As expected, the distribution shows that the vast majority of the sequences belong to Metazoa.
-For the distribution it self, it can be see that the majority of teh sequence belong to the metazoa, as we would expect.
+The kingdom proportions are almost identical in the five folds and in the test set.
 
-### Species Composition
+![Kingdom distribution by class](./Taxonomy_analysis/Kingdom_Percentages_by_Class.svg)
 
+The two classes have a different kingdom composition: Metazoa are 79% of the positives but 52% of the negatives, while Fungi are 9% of the positives and 28% of the negatives. A model could partly learn the kingdom instead of the signal peptide, which is worth keeping in mind when reading the results.
 
+![Species distribution by class](./Taxonomy_analysis/Species_Percentages_by_Class.svg)
 
-![image](./Taxonomy_analysis/Species.svg )
-
-This plot provides a more detailed taxonomic breakdown of the overall dataset. It highlights the six most highly represented species, while maintaining the broader kingdom-level classification for the remaining sequences.
-### Kindom Distribution by Fold
-
-![image](./Taxonomy_analysis/Kingdom_Percentages_by_Fold.svg)
-
-This plot demonstrates that the taxonomic proportions are preserved across the data splits, showing an almost perfectly balanced kingdom distribution across the five cross-validation folds and the independent test set.
+The same comparison for the six most represented species, with all the others grouped as "Other".

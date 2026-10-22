@@ -9,10 +9,15 @@ Original file is located at
 # Batch Approach
 """
 
+# OBSOLETE: older version kept for reference, use Data_collection/data_collection.py instead.
+# This script writes a 5-column TSV (no class column), while remove_redundancy.py and datasplitting.py
+# expect the 7-column TSV written by data_collection.py.
+
 import requests
 from requests.adapters import HTTPAdapter, Retry
 import json
 import re
+from pathlib import Path
 
 """The following url was generate using the query:
 
@@ -117,5 +122,5 @@ def get_dataset(search_url, extract_function, output_file_name):
             print(f">{entry[0]}", file=ofs)
             print(entry[-1], file=ofs)
 
-output_file = "LB2_project_Group_1/Data_collection/negative/dataset_neg"
+output_file = str(Path(__file__).resolve().parent / "dataset_neg")
 get_dataset(url, extract_fields, output_file)
