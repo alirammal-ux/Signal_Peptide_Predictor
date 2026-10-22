@@ -1,82 +1,62 @@
-# LB2_project_Group_1
+# Signal Peptide Prediction in Eukaryotic Proteins
 
-## Data collection pipeline:
+This project builds and evaluates models to predict whether a eukaryotic protein contains an N-terminal **signal peptide (SP)**, and where it is cleaved. We built the dataset from UniProtKB, analysed it, and trained two classifiers: a **Von Heijne PSWM** baseline and an **SVM** with feature extraction and selection.
 
-The preliminary dataset was collected as two set: positive dataset and negative dataset.
+## Project workflow
 
-### Positive dataset:
-For the <u>preliminary positive dataset</u>, proteins with *signal peptides* were collected from UniprotKB using the following fields:
-- Signal peptide only with experimental evidence
-- Reviewed
-- No fragments
-- Eukaryotic proteins (Taxonomy: 2759)
-- Sequence length >= 40 residues
-- Existence of protein at protein level
+1. **Data collection**: positive (with SP) and negative (without SP) sets from UniProtKB.
+2. **Data preparation**: redundancy removal, train/test split, cross-validation folds.
+3. **Data analysis**: checks that the data are consistent and balanced across splits.
+4. **Von Heijne method**: PSWM baseline and its evaluation.
+5. **SVM**: feature extraction, feature selection and evaluation *(to be completed)*.
 
-UniprotKB query:
-```
-```
+## Repository structure
 
-The result was 2974 entries, which were filtered again using a python script to retain just entries having a signal peptide that starts at the beginning of the chain and is strictly longer than 13 amino acids, excluding not cleaved ones. After this second filtering we obtained 2961 entries.
+| Folder | Content |
+|---|---|
+| `Data_collection/` | Scripts and TSV files for the positive and negative datasets (`data_collection.py`) |
+| `Data_preparation/` | Clustering with MMseqs2, train/test split and 5-fold CV |
+| `Data_analysis/` | Plots: amino acid composition, cleavage-site logos, protein and SP lengths, taxonomy |
+| `Von_Heijne/` | PSWM implementation (`matrix.ipynb`, `von_heine_metrics.py`) and results |
+| `SVM/` | SVM with feature extraction and selection *(coming soon)* |
 
-### Negatives dataset:
+Each folder has its own README with the details.
 
-For the <u>negative dataset</u>, proteins with *signal peptides* were collected from UniprotKB using the following fields:
-- Reviewed
-- No fragments
-- Eukaryotic proteins (Taxonomy: 2759)
-- Sequence length >= 40 residues
-- No signal peptides at any evidence at protein level
-- Experimental located in: cytosol, nucleus, mitochondrion, plastid, perozisome, cell membrane
+## Data at a glance
 
-UniprotKB query:
-```
-(taxonomy_id:2759) AND (existence:1) AND (reviewed:true) AND (fragment:false) AND (length:[40 TO *]) AND ((cc_scl_term_exp:SL-0091) OR (cc_scl_term_exp:SL-0191) OR (cc_scl_term_exp:SL-0173) OR (cc_scl_term_exp:SL-0039) OR (cc_scl_term_exp:SL-0209) OR (cc_scl_term_exp:SL-0204)) NOT (ft_signal:*) NOT ((cc_scl_term:SL-0095) OR (cc_scl_term:SL-0132) OR (cc_scl_term:SL-0112) OR (cc_scl_term:SL-0243))
-```
-The query explicitly exlude proteins of Golgi apparatus, endoplasmic reticulum (ER), extracellular space, or were annotated as secreted proteins.
+- **Positives**: eukaryotic, reviewed, non-fragment proteins from UniProtKB with an experimentally verified SP, length ≥ 40 aa, evidence at protein level. After filtering (SP starting at the beginning of the chain and longer than 13 aa, cleaved) we kept **2961** proteins.
+- **Negatives**: eukaryotic, reviewed, non-fragment proteins with no SP, experimentally located in cytosol, nucleus, mitochondrion, plastid, peroxisome or cell membrane. Proteins of the Golgi, ER, extracellular space or annotated as secreted were excluded, leaving **19594** proteins.
+- **Redundancy removal**: MMseqs2 clustering (30% sequence identity, 40% coverage), keeping one representative per cluster.
+- **Splits**: stratified 80% training / 20% test, with the training set divided into 5 folds for cross-validation.
 
-The result was 20974 entries.
+## Data analysis findings:
 
-## Data collection results
+- Hydrophobic residues (L, A, V) dominate the SP region, and the cleavage site shows the typical **AXA motif** at positions −3/−1.
+- Positive proteins are shorter than negative ones (median 274 vs 425 aa).
+- SP length is about 20 residues and does not correlate with protein length.
+- Amino acid composition, SP length and taxonomy (mostly Metazoa) are well balanced across the 5 folds and the test set.
 
-| \|positive dataset\| | \| negative dataset\|
-| :---: | :---: |
-| 2961  | 20974 |
+## Models
 
-For each dataset we produced a tsv file with features of interest and a fasta file with Uniprot IDs and sequences. 
+### Von Heijne (PSWM)
+A Position-Specific Weight Matrix built on a 15-residue window (13 positions before the cleavage site, 2 after), slid over the first 90 residues of each protein. The best window score is compared with a threshold chosen to maximise the F1 score. Results are averaged over 5 runs (MCC, F1, precision, recall, accuracy, confusion matrix) and are consistent across folds.
 
-The tsv is organize with the following columns:
-1. **CLASS**: whether the data come from the positive set or from the negative, positive ones has 1.
-2. **UniProtAccession**
-3. **Organism name**
-4. **Eukaryotic kingdom** (Metazoa, Fungi, Plants, Other)
-5. **Protein length**
-6. **cleavage site position**: always zero for the negative dataset
-7. **Transmembrane site**: true/false if a transmembrane helix starts within the first 90 residues
-(always false for the positive dataset)
+### SVM
+*To be added.*
+
+## How to run
+
+Dataset collection:
 
 
 
-##  Data Preparation Pipeline:
 
-Redundancy is removed from both dataset by using clustering. To remove nearly identical sequences, only the representative of each cluster was kept. MMseq tool was used with 30% sequence-identity threshold and a 40% length-coverage threshold as hyperparameters.
+## Requirements
 
-Then positive and negative dataset were merged and split randomly in trainig and test set, which respectivelly contains 80% and 20% of the entire dataset. Biases with respect the class label (positive and egative) were avoided by using specific parameter in the splitting function.
+- Python 3 (pandas, numpy, scikit-learn, matplotlib)
+- [MMseqs2](https://github.com/soedinglab/MMseqs2)
+- [WebLogo](https://weblogo.threeplusone.com/) for the sequence logos
 
+## Authors
 
-## Data Analysis:
-
-In this step we describe the datasets with respect some features (SP lengths, protein lengths, amino-acid composition of SPs vs a background, taxonomic classification and SP cleavege sites) to ensure that no biases has been introduced during the splitting (in particular between training and test set).
-
-## Feature Extraction and Selection:
-Features are extracted using chemico-phisical scales from ProtScale and AAindex. The scales are applied through sliding window to the first 40 residues of each protein sequence.
-
-From the hydrobhobicity profile of each sequence, we extract the following features:
-- hydrophobicity score of the firs maximum peak
-- position in the sequence of the first maximum peak
-- length (= number of positions) of the region around the peak with hydrophobicity score upper a threshold
-- drop in hydrophobicity = hydrophobicity score of the peak minus the hidrophobicity score of the 40° residue
-
-Other 20 features are computed as the frequency of each residue in the first n residues in the protein sequence, where n is the median SP length in the training set (recomputed on the training folds of each CV split).
-
-
+Group 1 – Piccoli V., Rammal A., Acazi D., Zarcone P., Giavatto L. I.
