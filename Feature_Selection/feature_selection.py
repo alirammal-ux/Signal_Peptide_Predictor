@@ -11,45 +11,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import matthews_corrcoef, 
 from pathlib import Path
+import argparse 
 
 
 RANDOM_STATE = 111
 
-HERE = Path(__file__).resolve().parent   # Feature_Selection/
-ROOT = HERE.parent                       # repository root
-
-
-X=pd.read_csv(HERE/'feature.csv') #FIXME: better to be pass from command line 
-
-# sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
-# (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
-X = X.sort_values(by='id').reset_index(drop=True)
-
-df=pd.read_csv(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',sep='\t') #FIXME: better to be pass from command line 
-
-df = df.sort_values(by='ID').reset_index(drop=True)
-
-y= df['class']
-X= X.drop(columns='id', axis=1)
-fold= df['fold']
-
-feature_names=X.columns.to_list()
-
-
-
-
-# K_GRID=[len(feature_names)//4,len(feature_names)//3,len(feature_names)//2,len(feature_names)]
-K_GRID=[i for i in range(11,len(feature_names),2)]
-C_GRID=[1,4,10,16]
-
-
-GRID=[]
-for k in K_GRID:
-    for c in C_GRID:
-        GRID.append((k,c,np.round(0.5/k,4))) 
-        GRID.append((k,c,np.round(1/k,4))) 
-        GRID.append((k,c,np.round(2/k,4))) 
-        GRID.append((k,c,np.round(4/k,4))) 
 
 
 
@@ -169,9 +135,54 @@ def new_svm(c,gamma):
 
 
 if __name__=='__main__':
-    svm_rf = nested_cv("Embedded: RF importance", "embedded", select_rf, GRID,new_svm,X,y,fold)
-    with open(HERE/'results_svm_rf.txt', 'w') as f: #FIXME: better to be pass from command line 
 
+    HERE = Path(__file__).resolve().parent   # Feature_Selection/
+    ROOT = HERE.parent                       # repository root
+
+
+    parser=argparse.ArgumentParser(description='nested cv for feature selection and hyperparms')
+    parser.add_argument('--X',default=HERE/'feature.csv',type=str)
+    parser.add_argument('--data',default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',type=str)
+    parser.add_argument('--out',default=HERE/'results_svm_rf.txt',type=str)
+
+    args=parser.parse_args()
+
+
+    ########### FILES ###########
+    X=pd.read_csv(args.X) 
+
+    # sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
+    # (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
+    X = X.sort_values(by='id').reset_index(drop=True)
+
+    df=pd.read_csv(args.data,sep='\t')  
+
+    df = df.sort_values(by='ID').reset_index(drop=True)
+
+    y= df['class']
+    X= X.drop(columns='id', axis=1)
+    fold= df['fold']
+
+
+    ######### GRID #############
+    feature_names=X.columns.to_list()
+    # K_GRID=[len(feature_names)//4,len(feature_names)//3,len(feature_names)//2,len(feature_names)]
+    K_GRID=[i for i in range(11,len(feature_names),2)]
+    C_GRID=[1,4,10,16]
+
+
+    GRID=[]
+    for k in K_GRID:
+        for c in C_GRID:
+            GRID.append((k,c,np.round(0.5/k,4))) 
+            GRID.append((k,c,np.round(1/k,4))) 
+            GRID.append((k,c,np.round(2/k,4))) 
+            GRID.append((k,c,np.round(4/k,4))) 
+
+
+    ####### NESTED CV ##############
+    svm_rf = nested_cv("Embedded: RF importance", "embedded", select_rf, GRID,new_svm,X,y,fold)
+    with open(args.out, 'w') as f: 
         for k,v in svm_rf.items():
             print(f'{k}: {v}', file=f)
 

@@ -9,52 +9,12 @@ import matplotlib.pyplot as plt
 AA_keys="ACDEFGHIKLMNPQRSTVWY"
 
 HERE = Path(__file__).resolve().parent   # von_Heijne_method/
-ROOT = HERE.parent                       # root del repository
+ROOT = HERE.parent.parent                # root del repository
 
 
-def count(fasta,data,j):
-    cleavage_site_train=list()
-    seq_val=list()
-    seq_test=list()
-    seq_test_with_ID=list()
-
-
-    with open(fasta, 'r') as fasta:
-        for line in fasta:
-            if line.startswith('>'):
-                UniprotID = line.rstrip()[1:]
-
-                #take the fold 
-                fold = data.loc[data['ID'] == UniprotID, 'fold'].values[0] # estraggo la riga corrispondente ad UniprotID e ricavo il valore di fold per determinare a che set appartiene
-
-                #take the class
-                clas=data.loc[data['ID'] == UniprotID, 'class'].values[0]
-
-                #take the context
-                cleavage_pos = data.loc[data['ID'] == UniprotID, 'cleavage_pos'].values[0]
-
-
-                start_pos = cleavage_pos - 13
-                end_pos = cleavage_pos + 2
-
-                seq = fasta.readline().strip()
-
-                #lista per split 
-                fold_train=[1,2,3,4,5]
-                fold_train.remove(j)
-                
-
-                if fold in fold_train and clas==1: 
-                    cleavage_site_train.append(seq[start_pos:end_pos])
-                elif fold==j:
-                    seq_val.append((seq,clas))
-                
-    return cleavage_site_train,seq_val
-
-def count_test(fasta,data):
-    cleavage_site_train=list()
-    seq_test=list()
-    seq_test_with_ID=list()
+def count(fasta,data,j=None,final=False):
+    set1=list()
+    set2=list()
 
 
     with open(fasta, 'r') as fasta:
@@ -77,18 +37,27 @@ def count_test(fasta,data):
 
                 seq = fasta.readline().strip()
 
-                if fold==-1:
-                    seq_test.append((seq,clas))
-                    seq_test_with_ID.append((seq,clas,UniprotID))
-               
+
+                if final:
+                    if fold==-1:
+                        set2.append((seq,clas,UniprotID))
+                    else:
+                        if clas==1: 
+                            set1.append(seq[start_pos:end_pos])
 
                 else:
-                    if clas==1: 
-                        cleavage_site_train.append(seq[start_pos:end_pos])
 
-                    
-    return cleavage_site_train,seq_test,seq_test_with_ID
+                    #lista per split 
+                    fold_train=[1,2,3,4,5]
+                    fold_train.remove(j)
 
+                    if fold in fold_train and clas==1: 
+                        set1.append(seq[start_pos:end_pos])
+                    elif fold==j:
+                        set2.append((seq,clas))
+
+
+    return set1,set2
 
 #pesudocount
 
@@ -146,23 +115,17 @@ def opt_th(y_val , y_val_scores):
     precision, recall, thresholds = precision_recall_curve(y_val , y_val_scores)
     f1 = (2 * precision * recall) / (precision + recall)
 
-
     # se precision+recall=0 f1 è NaN: nanargmax lo ignora, argmax restituirebbe proprio il NaN
     optimal_threshold = thresholds[np.nanargmax(f1)]
-    y_pred = [int(s >= optimal_threshold) for s in y_val_scores]
-    mcc_val = matthews_corrcoef(y_val, y_pred)
 
-    # classify the test set with the chosen threshold
-    # y_pred = [int(s >= optimal_threshold) for s in y_test_scores]
+    return optimal_threshold
 
-    return optimal_threshold, mcc_val
+
 
 def metrics_test(th,y_test_scores,y_test):
     y_pred = [int(s >= th) for s in y_test_scores]
 
-
-
-    cm= confusion_matrix(y_test, y_pred,normalize='true')
+    cm= confusion_matrix(y_test, y_pred)
     mcc=matthews_corrcoef(y_test,y_pred)
     f1=f1_score(y_test,y_pred)
     precision=precision_score(y_test,y_pred)
@@ -175,17 +138,15 @@ def metrics_test(th,y_test_scores,y_test):
 
 
 if __name__=='__main__':
-
     
     #argparse
     parser = argparse.ArgumentParser(description="Calcolo metriche su test set")
     parser.add_argument('--df_back',type=str,default=str(ROOT/'Data_analysis'/'aa_composition_plots'/'background_freq.tsv'))
-    parser.add_argument('--fasta',type=str,default=str(HERE/'merged.fasta'))
+    parser.add_argument('--fasta',type=str,default=str(ROOT/'von_Heijne_method/merged.fasta'))
     parser.add_argument('--data',type=str,default=str(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv'),help='Cleaned_merged_dataset')
     parser.add_argument('--out_dir',type=str,default=str(HERE))
     parser.add_argument('--cm',type=str,default='n',help='y if you want a cm for run,default=n')
     args=parser.parse_args()
-
     out_dir=Path(args.out_dir)
     df_background=pd.read_table(args.df_back)
     df_background.sort_values(by='aa',inplace=True)
@@ -194,13 +155,12 @@ if __name__=='__main__':
 
     freq=df_background['freq_back'].to_numpy()
 
-    best_threshold=0
-    best_mcc=0
+    list_th=[]
+    
 
 
     df_metrics = pd.DataFrame(columns=['mcc', 'f1', 'precision', 'recall', 'acc','tn', 'fp', 'fn', 'tp', 'threshold'])
-    df_pred = pd.DataFrame(columns=['UniprotID', 'true_class','predicted_class'])
-
+    
     #######VALiDATION#####################
     for run in range(1,6):
         
@@ -215,20 +175,20 @@ if __name__=='__main__':
             y_val.append(clas)
 
 
-        th,mcc_val=opt_th(y_val , y_val_scores)
+        th=opt_th(y_val , y_val_scores)
 
-        if mcc_val > best_mcc:
-
-            best_mcc=mcc_val
-            best_threshold=th
+        list_th.append(th)
 
     #######TEST#####################
-    train_set,test_set,test_set_with_ID=count_test(fasta,df)
+    train_set,test_set_with_ID=count(fasta,df,final=True)
     pswm=create_pswm(train_set,freq)
     y_test_scores=[]
     y_test=[]
+
+    #mean of fold_threshold
+    best_threshold=np.mean(list_th)
             
-    for (seq,clas) in test_set:
+    for (seq,clas,_) in test_set_with_ID:
         y_test_scores.append(score_seq(seq,pswm)[0])
         y_test.append(clas)
     
@@ -236,7 +196,7 @@ if __name__=='__main__':
     m,cm=metrics_test(best_threshold,y_test_scores,y_test)
     tn, fp, fn, tp = cm.ravel()
     mcc,f1,precision,recall,acc=m
-    df_metrics.loc[len(df_metrics)]=mcc,f1,precision,recall,acc,tn, fp, fn, tp, th
+    df_metrics.loc[len(df_metrics)]=mcc,f1,precision,recall,acc,tn, fp, fn, tp, best_threshold
 
     df_pred = pd.DataFrame({
         'UniprotID': [item[2] for item in test_set_with_ID],
@@ -248,20 +208,11 @@ if __name__=='__main__':
     if args.cm == 'y':
         disp = ConfusionMatrixDisplay(cm, display_labels=["non-SP", "SP"])
         fig, ax = plt.subplots(figsize=(5, 4))
-        disp.plot(ax=ax, cmap="Blues", colorbar=False, values_format=".2%")
+        disp.plot(ax=ax, cmap="Blues", colorbar=False, values_format="d")
         ax.set_title(f"Confusion matrix – final")
         fig.savefig(out_dir / f"confusion_matrix_final.png", dpi=300, bbox_inches="tight")
         plt.close(fig)
 
-            
-
-
-    
-
-
 
     #save df 
-    df_metrics.to_csv(out_dir/'vom_heijne_metrics.csv')
-
-
-
+    df_metrics.to_csv(out_dir/'vom_heijne_metrics.csv',index=False)

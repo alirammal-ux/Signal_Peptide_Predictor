@@ -11,9 +11,6 @@ from pathlib import Path
 #   ( o.o )   <-- Il gatto della qualità del codice veglia su di te.
 #    > ^ <
 
-#FIXME: better to be pass from command line
-HERE = Path(__file__).resolve().parent   # Feature_Selection/
-ROOT = HERE.parent                       # repository root
 
 argparser = argparse.ArgumentParser(description='This script is used to analyze the predictions of the model on the benchmark set')
 

@@ -12,47 +12,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import matthews_corrcoef,f1_score, confusion_matrix, precision_score, recall_score, balanced_accuracy_score
 from pathlib import Path
+import argparse
 
 
-#FIXME: better to be pass from command line
-HERE = Path(__file__).resolve().parent   # Feature_Selection/
-ROOT = HERE.parent                       # repository root
-
-X=pd.read_csv(HERE/'feature.csv') #FIXME: better to be pass from command line
-
-# sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
-# (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
-X = X.sort_values(by='id').reset_index(drop=True) #--> the values are sorted by the protein ID, so that the position i is the same protein in X, y and fold
-
-df=pd.read_csv(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',sep='\t') #FIXME: better to be pass from command line 
-
-df = df.sort_values(by='ID').reset_index(drop=True)
-
-## we need to extract from df only the class and fold columns, and from X only the features (drop the id column)
-y= df['class']
-X= X.drop(columns='id', axis=1) #eliminate the id column from X, because it is not a feature, only used to synncronize with df
-fold= df['fold']
-
-feature_names=X.columns.to_list()
-
-
-
-######### DEFINITION OF THE GRID OF PARAMETERS TO TEST #######
-
-#FEATURES K (number of features to select)
-K_GRID=[i for i in range(11,len(feature_names),2)]
-
-# C VALUES
-C_GRID=[1,4,10,16]
-
-#GAMMA VALUES dependent on k
-GRID=[]
-for k in K_GRID:
-    for c in C_GRID:
-        GRID.append((k,c,np.round(0.5/k,4))) 
-        GRID.append((k,c,np.round(1/k,4))) 
-        GRID.append((k,c,np.round(2/k,4))) 
-        GRID.append((k,c,np.round(4/k,4))) 
 
 
 ######### DEFINITION OF THE FUNCTION TO TRAIN AND VALIDATE THE MODEL #######
@@ -165,15 +127,66 @@ def model_eval(name, family, select, grid, new_model,X,y,fold,verbose=True, stor
     return y_test,y_pred,test_idx,k,c,gamma
 
 if __name__ == "__main__":
+
+    HERE = Path(__file__).resolve().parent   # Feature_Selection/
+    ROOT = HERE.parent                       # repository root
+
+
+    parser=argparse.ArgumentParser(description='final training and evaluation of the svm')
+    parser.add_argument('--X',default=ROOT/'Feature_Selection'/'feature.csv',type=str)
+    parser.add_argument('--data',default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',type=str)
+    parser.add_argument('--out',default=HERE/'SVM_pred_vs_test.csv',type=str)
+    parser.add_argument('--v',default='n',type=str,help='create a file SVM_performance.txt in the currend dir with a verbose description of the model performance')
+    args=parser.parse_args()
+    
+
+
+    X=pd.read_csv(args.X) 
+
+    # sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
+    # (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
+    X = X.sort_values(by='id').reset_index(drop=True) #--> the values are sorted by the protein ID, so that the position i is the same protein in X, y and fold
+
+    df=pd.read_csv(args.data,sep='\t')  
+
+    df = df.sort_values(by='ID').reset_index(drop=True)
+
+    ## we need to extract from df only the class and fold columns, and from X only the features (drop the id column)
+    y= df['class']
+    X= X.drop(columns='id', axis=1) #eliminate the id column from X, because it is not a feature, only used to synncronize with df
+    fold= df['fold']
+
+    feature_names=X.columns.to_list()
+
+
+
+    ######### DEFINITION OF THE GRID OF PARAMETERS TO TEST #######
+
+    #FEATURES K (number of features to select)
+    K_GRID=[i for i in range(11,len(feature_names),2)]
+
+    # C VALUES
+    C_GRID=[1,4,10,16]
+
+    #GAMMA VALUES dependent on k
+    GRID=[]
+    for k in K_GRID:
+        for c in C_GRID:
+            GRID.append((k,c,np.round(0.5/k,4))) 
+            GRID.append((k,c,np.round(1/k,4))) 
+            GRID.append((k,c,np.round(2/k,4))) 
+            GRID.append((k,c,np.round(4/k,4))) 
+
     y_test, y_pred, test_idx,k,c,gamma = model_eval("SVM", "SVM", select_rf, GRID, new_svm,X,y,fold,verbose=True, store=True)
 
     mcc, f1, cm, precision, recall, bal_acc= performance_metrics(y_test, y_pred)
 
-    with open(HERE/'SVM_pred_vs_test.csv', 'w') as f:
-        f.write('Uniprot_ID,true_class, pred_class \n')
+    with open(args.out, 'w') as f:
+        f.write('Uniprot_ID,true_class,pred_class\n')
         for i in range(len(test_idx)):
             f.write(f'{df.iloc[test_idx[i]]["ID"]},{y_test.iloc[i]},{y_pred[i]}\n')
 
-    with open(HERE/'SVM_performance.txt', 'w') as f:
-        f.write(f'SVM \nHyperparameters: k={k}, C={c}, gamma={gamma}\n\n Model performance on benchmark set:\nMCC: {mcc:.3f}\nF1 Score: {f1:.3f}\nConfusion Matrix:\n{cm}\nPrecision: {precision:.3f}\nRecall: {recall:.3f}\nBalanced Accuracy: {bal_acc:.3f}\n')
+    if args.v=='y':
+        with open(HERE/'SVM_performance.txt', 'w') as f:
+            f.write(f'SVM \nHyperparameters: k={k}, C={c}, gamma={gamma}\n\n Model performance on benchmark set:\nMCC: {mcc:.3f}\nF1 Score: {f1:.3f}\nConfusion Matrix:\n{cm}\nPrecision: {precision:.3f}\nRecall: {recall:.3f}\nBalanced Accuracy: {bal_acc:.3f}\n')
 
