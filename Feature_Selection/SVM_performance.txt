@@ -1,0 +1,12 @@
+SVM 
+Hyperparameters: k=35, C=4, gamma=0.0143
+
+ Model performance on benchmark set:
+MCC: 0.894
+F1 Score: 0.906
+Confusion Matrix:
+[[1707   18]
+ [  23  198]]
+Precision: 0.917
+Recall: 0.896
+Balanced Accuracy: 0.943

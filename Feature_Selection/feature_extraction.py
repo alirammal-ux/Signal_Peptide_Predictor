@@ -50,7 +50,7 @@ def profile(sequence, scale, w):
 
 
 def extract_f(seq,dict_f):
-
+    '''takes the sequence and the dictionary of scales, returns a list of features'''
     #______kd_________
     kd=profile(seq[:40],dict_f['kd'],5)
     kd_max,kd_max_p=profile_stat(kd)
@@ -118,13 +118,14 @@ if __name__=='__main__':
     parser.add_argument('--out',type=str,default=str(HERE/'feature.csv'),help='output csv, one row of features per protein')
     args=parser.parse_args()
 
+    #extracts the scales from the aaindex file and saves them in a dictionary
     with open(args.scale_selected_file,'r') as f:
         dict_f={}
         for line in f:
             line=line.strip().split()
             dict_f[line[1]]=parse_aaindex_file(args.aaindex_file,line[0])
 
-    #Amino acid scale: Transmembrane tendency ProtScale
+    #Amino acid scale: Transmembrane tendency ProtScale, not present in the aaindex file, so we add it manually
 
     dict_f['tt'] = {
         'A':  0.380,  # Ala

@@ -1,0 +1,8 @@
+nohup: ignoring input
+  outer fold 1: chosen setting = (35, 4, 0.0286)  features kept = 35   test mcc = 0.865
+  outer fold 2: chosen setting = (23, 16, 0.0217)  features kept = 23   test mcc = 0.843
+  outer fold 3: chosen setting = (33, 4, 0.0303)  features kept = 33   test mcc = 0.858
+  outer fold 4: chosen setting = (27, 4, 0.0185)  features kept = 27   test mcc = 0.863
+  outer fold 5: chosen setting = (27, 4, 0.0185)  features kept = 27   test mcc = 0.844
+Embedded: RF importance: 0.855 ± 0.009   (3661.8s)
+

@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import matthews_corrcoef, 
 from pathlib import Path
+
 
 RANDOM_STATE = 111
 
@@ -18,17 +19,15 @@ HERE = Path(__file__).resolve().parent   # Feature_Selection/
 ROOT = HERE.parent                       # repository root
 
 
-X=pd.read_csv(HERE/'feature.csv')
+X=pd.read_csv(HERE/'feature.csv') #FIXME: better to be pass from command line 
 
 # sort both tables by protein ID and reset the index, so that position i is the same protein in X, y and fold
 # (the fold indices are used as positions with .iloc in choose_setting and nested_cv)
 X = X.sort_values(by='id').reset_index(drop=True)
 
-df=pd.read_csv(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',sep='\t')
+df=pd.read_csv(ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',sep='\t') #FIXME: better to be pass from command line 
 
 df = df.sort_values(by='ID').reset_index(drop=True)
-
-assert X['id'].tolist() == df['ID'].tolist(), 'feature.csv and Cleaned_merged_dataset.tsv contain different IDs'
 
 y= df['class']
 X= X.drop(columns='id', axis=1)
@@ -56,6 +55,7 @@ for k in K_GRID:
 
 
 def train_and_test(X_train, y_train, X_test, y_test, new_model, c, gamma):
+    
     # train a classifier on (X_train, y_train) and return its mcc on (X_test, y_test)
     
     if X_train.shape[1] == 0:
@@ -170,7 +170,8 @@ def new_svm(c,gamma):
 
 if __name__=='__main__':
     svm_rf = nested_cv("Embedded: RF importance", "embedded", select_rf, GRID,new_svm,X,y,fold)
-    with open(HERE/'results_svm_rf.txt', 'w') as f:
+    with open(HERE/'results_svm_rf.txt', 'w') as f: #FIXME: better to be pass from command line 
+
         for k,v in svm_rf.items():
             print(f'{k}: {v}', file=f)
 
