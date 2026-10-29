@@ -8,6 +8,8 @@ from pathlib import Path
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
+
 argparser = argparse.ArgumentParser(description="Analyze the results of the SVM test set.")
 
 ##### AA COMPOSITION at N-TERM ######
@@ -169,7 +171,7 @@ def generate_comp_bargraph(FN_comp, TP_comp, TP_comp_train, output_dir):
 
     plt.tight_layout()
     #plt.show()
-    plt.savefig(f'{output_dir}/Bargraph_aa_composition.png')
+    plt.savefig(f'{output_dir}/Bargraph_aa_composition.png',dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 
 
 #### OTHER FEATURES DISTRIBUTION ####
@@ -225,7 +227,7 @@ def feature_distributions_boxplot(FN_id_test, TP_id_test, TP_id_train, df_featur
     plt.ylabel(feature_names_dict[feature])
     plt.grid(True, linestyle='--', alpha=0.6)
     #plt.show()
-    plt.savefig(f'{output_dir}/Boxplot_{feature}_dist.png')
+    plt.savefig(f'{output_dir}/Boxplot_{feature}_dist.png',dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 
 
 
@@ -242,7 +244,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     df_labels = pd.read_csv(args.output_model)
-    data = pd.read_csv(args.original_df)
+    data = pd.read_csv(args.original_df,sep='\t')
     df_features = pd.read_csv(args.features_csv)
 
 
@@ -300,7 +302,7 @@ if __name__ == '__main__':
 
     plt.tight_layout()
     #plt.show()
-    plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png')
+    plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
 
     # Boxplots of the three distributions
     plt.figure(figsize=(8, 5))
@@ -310,7 +312,7 @@ if __name__ == '__main__':
     plt.ylabel('Peptide length')
     plt.grid(True, linestyle='--', alpha=0.6)
     #plt.show()
-    plt.savefig(f'{args.output_dir}/Boxplots_sp_length_dist.png')
+    plt.savefig(f'{args.output_dir}/Boxplots_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
 
 
     #### OTHER FEATURES DISTRIBUTIONS ####

@@ -5,13 +5,7 @@ import matplotlib.pyplot as plt
 import argparse
 from pathlib import Path
 
-#AAAAAAAAAAAAAAAAAAAAAAAAAAA
 
-#    /\_/\          MIAOOOOOO
-#   ( o.o )   <-- Il gatto della qualità del codice veglia su di te.
-#    > ^ <
-
-#FIXME: better to be pass from command line
 #HERE = Path(__file__).resolve().parent   # Feature_Selection/
 #ROOT = HERE.parent                       # repository root
 
@@ -59,7 +53,7 @@ def plot_taxa_distribution(FP,FN,data):
     plt.legend()
     plt.xticks(rotation=0)
     plt.tight_layout()
-    plt.savefig('taxa_distribution.png', dpi=300)
+    plt.savefig('taxa_distribution.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.show()
 
 
@@ -78,7 +72,7 @@ def Helix_presence(FP,data):
     plt.legend()
     plt.xticks(rotation=0)
     plt.tight_layout()
-    plt.savefig('helix_distribution.png', dpi=300)
+    plt.savefig('helix_distribution.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.show()
 
 
