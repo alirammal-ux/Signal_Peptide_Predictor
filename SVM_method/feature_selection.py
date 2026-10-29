@@ -15,14 +15,12 @@ import argparse
 
 
 RANDOM_STATE = 111
-
-
-
+HERE = Path(__file__).resolve().parent   # Feature_Selection/
+ROOT = HERE.parent                       # repository root
 
 
 def train_and_test(X_train, y_train, X_test, y_test, new_model, c, gamma):
-    
-    # train a classifier on (X_train, y_train) and return its mcc on (X_test, y_test)
+    ''' train a classifier on (X_train, y_train) and return its mcc on (X_test, y_test)'''
     
     if X_train.shape[1] == 0:
         # no feature selected: the best we can do is predict the most frequent class
@@ -43,8 +41,9 @@ def train_and_test(X_train, y_train, X_test, y_test, new_model, c, gamma):
 
 
 def choose_setting(select, grid, X, y, new_model,test_fold,fold):
-    # inner cross-validation on (X_train, y_train) only; returns the best setting 
-    # and the mean validation mcc of every setting
+    ''' inner cross-validation on (X_train, y_train) only; returns the best setting 
+    and the mean validation mcc of every setting '''
+    
     train_fold=[k for k in range(1,6) if k!=test_fold] 
     mean_val_mcc = {}
     for setting in grid: # --> for each set of hyperparam values in the grid
@@ -78,22 +77,17 @@ def nested_cv(name, family, select, grid, new_model,X,y,fold,verbose=True, store
     # selected_sets --> selected set of feature for each fold (?)
 
     for i in range(1,6):
-
         test_idx=fold[fold==i].index.to_list()
         train_idx=fold[(fold!=i) &( fold>0)].index.to_list()
-
 
         X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
         X_test,  y_test  = X.iloc[test_idx],  y.iloc[test_idx]
 
         # STEP 1 - inner loop: choose the setting using the training part only        
-
         best, curve = choose_setting(select, grid, X, y, new_model,i,fold) #--> choose best setting (= #best_features to keep) on TRAIN SET
-
         k, c, gamma = best
 
         # STEP 2 - redo the selection on the whole outer-training part
-    
         cols = select(X_train, y_train, k) #--> given the #best_features (just a number!), select which are the #best most significant features on TRAIN TEST
 
         # STEP 3 - train on the outer-training part, test ONCE on the outer-test fold
@@ -136,10 +130,6 @@ def new_svm(c,gamma):
 
 if __name__=='__main__':
 
-    HERE = Path(__file__).resolve().parent   # Feature_Selection/
-    ROOT = HERE.parent                       # repository root
-
-
     parser=argparse.ArgumentParser(description='nested cv for feature selection and hyperparms')
     parser.add_argument('--X',default=HERE/'feature.csv',type=str)
     parser.add_argument('--data',default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',type=str)
@@ -170,7 +160,6 @@ if __name__=='__main__':
     K_GRID=[i for i in range(11,len(feature_names),2)]
     C_GRID=[1,4,10,16]
 
-
     GRID=[]
     for k in K_GRID:
         for c in C_GRID:
@@ -182,6 +171,7 @@ if __name__=='__main__':
 
     ####### NESTED CV ##############
     svm_rf = nested_cv("Embedded: RF importance", "embedded", select_rf, GRID,new_svm,X,y,fold)
+    
     with open(args.out, 'w') as f: 
         for k,v in svm_rf.items():
             print(f'{k}: {v}', file=f)

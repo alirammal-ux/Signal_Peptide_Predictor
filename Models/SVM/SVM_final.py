@@ -55,10 +55,6 @@ def performance_metrics(y_test,y_pred):
     
 
 
-
-
-
-
 ######## CROSS VALIDATION FUNCTION#####
 def choose_setting(select, grid, X, y, new_model,test_fold,fold):
     '''Takes as input the selection function, grid of hyperpameters, data and label, the model and the test fold. If it is not nested the test fold must be the benchmark fold (in our case -1).
@@ -182,7 +178,7 @@ if __name__ == "__main__":
     mcc, f1, cm, precision, recall, bal_acc= performance_metrics(y_test, y_pred)
 
     with open(args.out, 'w') as f:
-        f.write('Uniprot_ID,true_class,pred_class\n')
+        f.write('UniprotID,true_class,pred_class\n')
         for i in range(len(test_idx)):
             f.write(f'{df.iloc[test_idx[i]]["ID"]},{y_test.iloc[i]},{y_pred[i]}\n')
 

@@ -7,16 +7,13 @@ import matplotlib.pyplot as plt
 
 
 AA_keys="ACDEFGHIKLMNPQRSTVWY"
-
 HERE = Path(__file__).resolve().parent   # von_Heijne_method/
 ROOT = HERE.parent                       # root del repository
-
 
 def count(fasta,data,j):
     cleavage_site_train=list()
     seq_val=list()
     seq_test=list()
-
 
     with open(fasta, 'r') as fasta:
         for line in fasta:
@@ -32,7 +29,6 @@ def count(fasta,data,j):
                 #take the context
                 cleavage_pos = data.loc[data['ID'] == UniprotID, 'cleavage_pos'].values[0]
 
-
                 start_pos = cleavage_pos - 13
                 end_pos = cleavage_pos + 2
 
@@ -41,7 +37,6 @@ def count(fasta,data,j):
                 #lista per split 
                 fold_train=[(i+j)%5 for i in range(2,5)]
                 
-
                 if fold in fold_train and clas==1: 
                     cleavage_site_train.append(seq[start_pos:end_pos])
                 elif fold==(j+1)%5:
@@ -55,27 +50,24 @@ def count(fasta,data,j):
 
 
 #pesudocount
-
 def create_pswm(train_set,freq):
     pspm=np.ones([15,20])
 
     for seq in train_set:
         for i in range(len(seq)):
             pos_aa=AA_keys.find(seq[i])
-            # residui non standard (X, U, ...): find() restituisce -1, che li conterebbe come Y
+            # Not standard residures (X, U, ...): find() returns -1, which it will count as Y (-1=last position)
             if pos_aa == -1:
-                continue
+                continue #skips not standard residues
             pspm[i,pos_aa]+=1
 
-    # senza residui saltati ogni riga somma a N+20: equivale a dividere per (len(train_set)+20)
+    # Without skipped residues, every row sum to N+20: equal to divide by (len(train_set)+20)
     pspm/=pspm.sum(axis=1, keepdims=True)
-
 
     return np.log2(pspm/freq)
 
 
 def score_seq(seq,pswm):
-
     best_win_score,pos_best=float('-inf'),0
     final_pos=min(len(seq),90)-15
     
@@ -85,7 +77,6 @@ def score_seq(seq,pswm):
         
         #scorro sulla pswm
         for row in range(0,len(pswm[:,0])):
-
 
             #trovo col aa nella pswm 
             col=AA_keys.find(seq[row+i])
@@ -105,19 +96,19 @@ def score_seq(seq,pswm):
     return best_win_score,pos_best
 
 
-def opt_th(y_val , y_val_scores,y_test_scores):
+def opt_th(y_val , y_val_scores):
     # y: 0=NO_SP, 1=SP ; scores from PSWM scanning on validation data
     precision, recall, thresholds = precision_recall_curve(y_val , y_val_scores)
     f1 = (2 * precision * recall) / (precision + recall)
 
     # se precision+recall=0 f1 è NaN: nanargmax lo ignora, argmax restituirebbe proprio il NaN
+    #
     optimal_threshold = thresholds[np.nanargmax(f1)]
-    # classify the test set with the chosen threshold
-    # y_pred = [int(s >= optimal_threshold) for s in y_test_scores]
 
     return optimal_threshold
 
 def metrics_test(th,y_test_scores,y_test):
+    '''Predicts the labels for test fold and returns the correspondinc performance metrics'''
     y_pred = [int(s >= th) for s in y_test_scores]
 
     cm= confusion_matrix(y_test, y_pred,normalize='true')
@@ -177,9 +168,7 @@ def spider_plot(df, metrics, out_path, title="Performance across folds"):
 
 
 
-if __name__=='__main__':
-
-    
+if __name__=='__main__':  
     #argparse
     parser = argparse.ArgumentParser(description="Calcolo metriche su test set")
     parser.add_argument('--df_back',type=str,default=str(ROOT/'Data_analysis'/'aa_composition_plots'/'background_freq.tsv'))
@@ -194,7 +183,7 @@ if __name__=='__main__':
     df_background=pd.read_table(args.df_back)
     df_background.sort_values(by='aa',inplace=True)
     fasta=args.fasta
-    df=pd.read_table(args.data)
+    df=pd.read_table(args.data) #cleaned_merged_dataset
 
     freq=df_background['freq_back'].to_numpy()
 
@@ -217,7 +206,7 @@ if __name__=='__main__':
             y_test.append(clas)
 
 
-        th=opt_th(y_val , y_val_scores,y_test_scores)
+        th=opt_th(y_val , y_val_scores)
         m,cm=metrics_test(th,y_test_scores,y_test)
         tn, fp, fn, tp = cm.ravel()
         mcc,f1,precision,recall,acc=m
@@ -231,8 +220,6 @@ if __name__=='__main__':
             fig.savefig(out_dir / f"confusion_matrix{run}.png", dpi=300, bbox_inches="tight")
             plt.close(fig)
             
-
-
 
     #save df 
     df_metrics.to_csv(out_dir/'vom_heijne_metrics.csv')

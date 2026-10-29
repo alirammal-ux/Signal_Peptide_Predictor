@@ -2,17 +2,26 @@
 
 LB2 project – Group 1. We predict whether a eukaryotic protein carries an N-terminal secretory **signal peptide (SP)**. The dataset is built from UniProtKB/Swiss-Prot, made non-redundant and split into a training and a hold-out test set; on it we compare a **von Heijne position-specific weight matrix (PSWM)** with a **support vector machine (SVM)** trained on physico-chemical features.
 
-## Pipeline
+## Pipeline (FIXME: the structure can be kept but the nodes must modified to adapt to our pipeline)
+Project work plan:
+1. Retrive relevant datasets from UniProtKB.
+2. Preprocess datasets for cross-validation and benchmarking.
+3. Analyze and visualize dataset statistics.
+4. Extract relevant features for classification.
+5. Implement von Heijne's algorithm and SVM classifier.
+6. Evaluates methods via cross-validation and blind test set.
+7. Discuss and report results.
 
 ```mermaid
 flowchart LR
-    A[UniProtKB<br>REST API] --> B[Data_collection<br>positives and negatives]
-    B --> C[Data_preparation<br>MMseqs2 clustering]
-    C --> D[Data_preparation<br>train/test split + 5 CV folds]
-    D --> E[Data_analysis]
-    D --> F[von_Heijne_method<br>PSWM]
-    D --> G[Feature_Selection<br>feature extraction]
-    G --> H[Feature_Selection<br>feature selection + SVM]
+    A[DATA COLLECTION<br>UniProtKB REST API<br>filtering] --> B[DATA PREPARATION<br>MMseqs2 clustering <br>train/test split + 5 CV folds]
+    B --> C[DATA ANALYSIS]
+    C --> D[VALIDATION of VON HEIJNE METHOD<br>pswm]
+    D --> E[Build von Heijne model]
+    C --> F[VALIDATION of SVM METHOD<br>Feature extraction<br>Feature selection with RF]
+    F --> G[Build svm model]
+    E --> H[RESULTS ANALYSIS<br>error analysis]
+    G --> H[RESULTS ANALYSIS<br>error analysis]
 ```
 
 ## Repository structure
@@ -22,8 +31,9 @@ flowchart LR
 | [`Data_collection/`](Data_collection/) | `data_collection.py` | Downloads the positive and negative sets from UniProtKB and writes them as TSV and FASTA |
 | [`Data_preparation/`](Data_preparation/) | `Data_cleaning/remove_redundancy.py`, `datasplitting.py` | Removes redundancy (MMseqs2), splits training and test set, assigns the cross-validation folds |
 | [`Data_analysis/`](Data_analysis/) | one notebook per analysis | Amino acid composition, cleavage-site logos, protein and SP length, taxonomy |
-| [`von_Heijne_method/`](von_Heijne_method/) | `von_heijne_metrics.py` | PSWM baseline and its cross-validated evaluation |
-| [`Feature_Selection/`](Feature_Selection/) | `feature_extraction.py`, `feature_selection.py` | Feature extraction, feature selection and SVM in nested cross-validation |
+| [`von_Heijne_method/`](von_Heijne_method/) | `von_heijne_metrics.py` | PSWM baseline and its cross-validated evaluation for von Heijne method |
+| [`SVM_method/`](SVM_method/) | `feature_extraction.py`, `feature_selection.py` | Feature extraction, feature selection and SVM in nested cross-validation to evaluate the svm method (not using the) |
+| [`Models/`](Models/) | `SVM_final.py`, `von_heijne_metrics_final.py` | Train and test the two final models (svm, von heijne) for benchmarching. Use cross-validation to find hyperparameters. |
 
 Each folder has its own README with the details.
 
@@ -54,21 +64,35 @@ All the later steps read `Data_preparation/Cleaned_merged_dataset.tsv`, one row 
 
 ## Methods
 
-**von Heijne (PSWM).** The 15 residues around the cleavage site (13 before, 2 after) of the positive training sequences give a log-odds matrix against the Swiss-Prot amino acid background, with pseudocount 1. A protein is scored by sliding the window over its first 90 residues and keeping the best score; the threshold is the one that maximises F1 on a validation fold. In each of the 5 runs, 3 folds build the matrix, 1 fold chooses the threshold and 1 fold is used for testing.
+**von Heijne (PSWM).** The 15 residues around the cleavage site (13 before, 2 after) of the positive training sequences give a log-odds matrix against the Swiss-Prot amino acid background, with pseudocount 1. A protein is scored by sliding the window over its first 90 residues and keeping the best score; the threshold is the one that maximises F1 on a validation fold.
 
-**SVM.** Each protein is described by 37 features: 17 come from sliding-window profiles of 9 AAindex scales (hydrophobicity, charge, helix and β-sheet propensity, volume, signal-sequence helical potential, flexibility, mutability) on the first 40 residues, and 20 are the amino acid composition of the first 22 residues (the median SP length in the training set). A nested cross-validation on the 5 training folds chooses the number of features *k* (top *k* by Random Forest importance) and the RBF-SVM parameters *C* and γ in the inner loop, and measures the MCC of the chosen setting in the outer loop.
+**SVM.** Each protein is described by 37 features: 17 come from sliding-window profiles of 9 AAindex scales (hydrophobicity, charge, helix and β-sheet propensity, volume, signal-sequence helical potential, flexibility, mutability) on the first 40 residues, and 20 are the amino acid composition of the first 22 residues (the median SP length in the training set).
 
-## Results
+## Results obtained in the validation of the methods
 
-von Heijne, mean ± standard error over the 5 runs (`von_Heijne_method/k_fold_stats.csv`):
+von Heijne: in each of the 5 runs, 3 folds build the matrix, 1 fold chooses the threshold and 1 fold is used for testing. Mean ± standard error over the 5 runs (`von_Heijne_method/k_fold_stats.csv`):
 
 | MCC | F1 | Precision | Recall | Accuracy |
 |---:|---:|---:|---:|---:|
-| 0.692 ± 0.018 | 0.725 ± 0.016 | 0.708 ± 0.022 | 0.752 ± 0.041 | 0.936 ± 0.003 |
+| 0.688 ± 0.039 | 0.722 ± 0.036 | 0.708 ± 0.050 | 0.745 ± 0.088 | 0.935 ± 0.008 |
 
-*Values from the last run; they will be refreshed after re-running `von_heijne_metrics.py` with the current code.*
+SVM: A nested cross-validation on the 5 training folds chooses the number of features *k* (top *k* by Random Forest importance) and the RBF-SVM parameters *C* and γ in the inner loop, and measures the MCC of the chosen setting in the outer loop. Mean ± standard error over the nested cross-validation (see [`SVM_method/`](SVM_method/)).
 
-SVM: *pending*, the nested cross-validation is being re-run (see [`Feature_Selection/`](Feature_Selection/)).
+| MCC |
+|---:|
+| 0.855 ± 0.009 | 
+
+## Results of final models
+
+von Heijne (`Models/vhm/von_heijne_metrics_final.py`).
+SVM (`Models/SVM/SVM_final.py`).
+
+| Model | MCC | F1 | Precision | Recall | Accuracy |
+|---:|:---:|:---:|:---:|:---:|:---:|
+| Von Heijne | 0.677 | 0.714 | 0.689 | 0.742 | 0.933 (normal acc) |
+| SVM | 0.894 | 0.906 | 0.917 | 0.896 | 0.943 (balanced acc) |
+
+
 
 ## Data analysis highlights
 
@@ -78,15 +102,6 @@ SVM: *pending*, the nested cross-validation is being re-run (see [`Feature_Selec
 - Amino acid composition, SP length and kingdoms are balanced across the 5 folds and the test set. The two classes differ in kingdom composition: Metazoa are 79% of the positives but 52% of the negatives.
 
 Plots and details in [`Data_analysis/`](Data_analysis/).
-
-## Project status
-
-- [x] Data collection, redundancy reduction, training/test split
-- [x] Data analysis
-- [x] von Heijne method with cross-validation
-- [x] Feature extraction and nested cross-validation code
-- [ ] SVM results (re-run in progress)
-- [ ] Final evaluation of both methods on the hold-out test set
 
 ## Installation
 

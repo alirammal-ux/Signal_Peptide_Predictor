@@ -33,7 +33,7 @@ def parse_aaindex_file(filepath, record_id):
 
 
 if __name__=='__main__':
-# Example usage:
+    # Example usage:
     from pathlib import Path
     result = parse_aaindex_file(Path(__file__).resolve().parent / "aaindex1", "BIGC670101")
     print(result)
