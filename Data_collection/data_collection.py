@@ -2,7 +2,6 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 import json
 import re
-from sys import argv
 
 ##############################
 # FUNCTIONS for POSITIVE SET
@@ -180,31 +179,44 @@ def get_dataset(search_url, extract_function, output_file_name, *filter_function
 
 
 if __name__ == "__main__":
+    import argparse
+    from sys import exit
+
+    parser = argparse.ArgumentParser(
+        description='Download protein datasets from UniProt for signal peptide prediction',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument('--pos', 
+                            metavar='<output_prefix>',
+                            help='Download positive dataset (with signal peptides)')
+    mode_group.add_argument('--neg', 
+                            metavar='<output_prefix>',
+                            help='Download negative dataset (without signal peptides)')
+    
+    mode_group.add_argument('--all',
+                            nargs=2, 
+                            metavar=('<neg_prefix>', '<pos_prefix>'),  
+                            dest='all_args',
+                            help='Download both positive and negative datasets')
+
+    args = parser.parse_args()
+
     batch_size = 500
 
-
-    if len(argv)==3 and argv[1] in ('-pos','-neg'):  
-        if argv[1]=='-pos':
-            url_positive = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
-            output_file_positive = argv[2]
-            get_dataset(url_positive, extract_fields_positive, output_file_positive, filter_function_positive)
-        else:
-            url_negative = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29"
-            output_file_negative = argv[2]
-            get_dataset(url_negative, extract_fields_negative, output_file_negative)
-
-    elif len(argv)==4 and argv[1]=='-all':
-        url_negative = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29"
-        output_file_negative = argv[2]
-        get_dataset(url_negative, extract_fields_negative, output_file_negative)
-
+    if args.pos:
         url_positive = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
-        output_file_positive = argv[3]
-        get_dataset(url_positive, extract_fields_positive, output_file_positive, filter_function_positive)
-
-    else:
-        print('usage: python3 data_collection.py -pos <output prefix>\n'
-              '       python3 data_collection.py -neg <output prefix>\n'
-              '       python3 data_collection.py -all <output prefix negative> <output prefix positive>\n'
-              'each prefix produces <prefix>.tsv and <prefix>.fasta')
-        exit()
+        get_dataset(url_positive, extract_fields_positive, args.positive, filter_function_positive)
+        
+    elif args.neg:
+        url_negative = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29"
+        get_dataset(url_negative, extract_fields_negative, args.negative)
+        
+    elif args.all_args:
+        neg_prefix, pos_prefix = args.all_args
+        url_negative = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28%28taxonomy_id%3A2759%29+AND+%28existence%3A1%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28%28cc_scl_term_exp%3ASL-0091%29+OR+%28cc_scl_term_exp%3ASL-0191%29+OR+%28cc_scl_term_exp%3ASL-0173%29+OR+%28cc_scl_term_exp%3ASL-0039%29+OR+%28cc_scl_term_exp%3ASL-0209%29+OR+%28cc_scl_term_exp%3ASL-0204%29%29+NOT+%28ft_signal%3A*%29+NOT+%28%28cc_scl_term%3ASL-0095%29+OR+%28cc_scl_term%3ASL-0132%29+OR+%28cc_scl_term%3ASL-0112%29+OR+%28cc_scl_term%3ASL-0243%29%29%29"
+        get_dataset(url_negative, extract_fields_negative, neg_prefix)
+        
+        url_positive = "https://rest.uniprot.org/uniprotkb/search?compressed=false&format=json&query=%28%28ft_signal_exp%3A*%29+AND+%28reviewed%3Atrue%29+AND+%28fragment%3Afalse%29+AND+%28taxonomy_id%3A2759%29+AND+%28length%3A%5B40+TO+*%5D%29+AND+%28existence%3A1%29%29&size=500"
+        get_dataset(url_positive, extract_fields_positive, pos_prefix, filter_function_positive)

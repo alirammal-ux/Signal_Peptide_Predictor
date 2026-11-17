@@ -14,7 +14,7 @@ from pathlib import Path
 import argparse 
 
 
-RANDOM_STATE = 111
+RANDOM_STATE = 0
 HERE = Path(__file__).resolve().parent   # Feature_Selection/
 ROOT = HERE.parent                       # repository root
 
@@ -117,7 +117,7 @@ def nested_cv(name, family, select, grid, new_model,X,y,fold,verbose=True, store
 
 
 def select_rf(X_train, y_train, k):
-    rf = RandomForestClassifier(n_estimators=100, random_state=0)
+    rf = RandomForestClassifier(n_estimators=100, random_state=RANDOM_STATE)
     rf.fit(X_train, y_train)
     ranking = np.argsort(rf.feature_importances_)[::-1]   # most important first (= gini importance)
     return ranking[:k]

@@ -13,8 +13,11 @@ from sklearn.svm import SVC
 from sklearn.metrics import matthews_corrcoef,f1_score, confusion_matrix, precision_score, recall_score, balanced_accuracy_score
 from pathlib import Path
 import argparse
+import joblib
 
-
+RANDOM_STATE = 0
+HERE = Path(__file__).resolve().parent   # Feature_Selection/
+ROOT = HERE.parent.parent                    # repository root
 
 
 ######### DEFINITION OF THE FUNCTION TO TRAIN AND VALIDATE THE MODEL #######
@@ -86,9 +89,8 @@ def choose_setting(select, grid, X, y, new_model,test_fold,fold):
     return best, mean_val_mcc
 
 
-
 def select_rf(X_train, y_train, k):
-    rf = RandomForestClassifier(n_estimators=100, random_state=0)
+    rf = RandomForestClassifier(n_estimators=100, random_state=RANDOM_STATE)
     rf.fit(X_train, y_train)
     ranking = np.argsort(rf.feature_importances_)[::-1]   # most important first (= gini importance)
     return ranking[:k]
@@ -117,22 +119,24 @@ def model_eval(name, family, select, grid, new_model,X,y,fold,verbose=True, stor
         
     cols = select(X_train, y_train, k) #--> given the #best_features (just a number!), select which are the #best most significant features on TRAIN TEST
 
+    scaler = StandardScaler().fit(X_train.iloc[:, cols])
+    model = new_model(c, gamma)
+    model.fit(scaler.transform(X_train.iloc[:, cols]), y_train)
+
+
     # STEP 3 - train on the outer-training part, test ONCE on the outer-test fold
-    y_pred = train_and_test(X_train.iloc[:, cols], y_train, X_test.iloc[:, cols], y_test, new_model, c, gamma) #--> train a new model with the subset of best features, then test it on validation fold
-    
-    return y_test,y_pred,test_idx,k,c,gamma
+    # y_pred = train_and_test(X_train.iloc[:, cols], y_train, X_test.iloc[:, cols], y_test, new_model, c, gamma) #--> train a new model with the subset of best features, then test it on validation fold
+    y_pred = model.predict(scaler.transform(X_test.iloc[:, cols]))
+
+
+    return y_test,y_pred,test_idx,k,c,gamma,model,scaler,cols
 
 if __name__ == "__main__":
-
-    HERE = Path(__file__).resolve().parent   # Feature_Selection/
-    ROOT = HERE.parent                       # repository root
-
-
     parser=argparse.ArgumentParser(description='final training and evaluation of the svm')
-    parser.add_argument('--X',default=ROOT/'Feature_Selection'/'feature.csv',type=str)
+    parser.add_argument('--X',default=ROOT/'SVM_method'/'feature.csv',type=str)
     parser.add_argument('--data',default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv',type=str)
     parser.add_argument('--out',default=HERE/'SVM_pred_vs_test.csv',type=str)
-    parser.add_argument('--v',default='n',type=str,help='create a file SVM_performance.txt in the currend dir with a verbose description of the model performance')
+    parser.add_argument('--v',default='y',type=str,help='create a file SVM_performance.txt in the currend dir with a verbose description of the model performance')
     args=parser.parse_args()
     
 
@@ -173,9 +177,19 @@ if __name__ == "__main__":
             GRID.append((k,c,np.round(2/k,4))) 
             GRID.append((k,c,np.round(4/k,4))) 
 
-    y_test, y_pred, test_idx,k,c,gamma = model_eval("SVM", "SVM", select_rf, GRID, new_svm,X,y,fold,verbose=True, store=True)
+    
+
+    y_test, y_pred, test_idx, k, c, gamma, final_model, final_scaler, features = model_eval("SVM", "SVM", select_rf, GRID, new_svm,X,y,fold,verbose=True, store=True)
 
     mcc, f1, cm, precision, recall, bal_acc= performance_metrics(y_test, y_pred)
+
+    # --- save model into pkl file  ---
+    model_output_path = HERE / 'trained_svm_model.pkl'
+    scaler_output_path = HERE / 'trained_scaler.pkl'
+    
+    joblib.dump(final_model, model_output_path)
+    joblib.dump(final_scaler, scaler_output_path)
+    print(f"Modello salvato con successo in: {model_output_path}")
 
     with open(args.out, 'w') as f:
         f.write('UniprotID,true_class,pred_class\n')
@@ -184,5 +198,6 @@ if __name__ == "__main__":
 
     if args.v=='y':
         with open(HERE/'SVM_performance.txt', 'w') as f:
-            f.write(f'SVM \nHyperparameters: k={k}, C={c}, gamma={gamma}\n\n Model performance on benchmark set:\nMCC: {mcc:.3f}\nF1 Score: {f1:.3f}\nConfusion Matrix:\n{cm}\nPrecision: {precision:.3f}\nRecall: {recall:.3f}\nBalanced Accuracy: {bal_acc:.3f}\n')
+            f.write(f'SVM \nHyperparameters: k={k}, C={c}, gamma={gamma}\n\n Model performance on benchmark set:\nMCC: {mcc:.3f}\nF1 Score: {f1:.3f}\nConfusion Matrix:\n{cm}\nPrecision: {precision:.3f}\nRecall: {recall:.3f}\nBalanced Accuracy: {bal_acc:.3f}\n\nFeatures ordered by RF importance: {features}\n')
+        
 

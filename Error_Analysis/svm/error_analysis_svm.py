@@ -8,9 +8,9 @@ from pathlib import Path
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
-
-argparser = argparse.ArgumentParser(description="Analyze the results of the SVM test set.")
+HERE = Path(__file__).resolve().parent   # Feature_Selection/
+ROOT = HERE.parent.parent                    # repository root
+argparser = argparse.ArgumentParser(description="Script for SVM's FN analysis.")
 
 ##### AA COMPOSITION at N-TERM ######
 N_TERM = 40
@@ -174,6 +174,63 @@ def generate_comp_bargraph(FN_comp, TP_comp, TP_comp_train, output_dir):
     plt.savefig(f'{output_dir}/Bargraph_aa_composition.png',dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 
 
+    # Genera bargraph per la composizione rispetto ai gruppi di aa (polari, apolari, etc...)
+    # 1. Raggruppiamo  per gruppo e sommiamo le frequenze/conteggi
+    df_groups = df_comp.groupby('group', sort=False)[['FN_test', 'TP_test', 'TP_train']].sum().reset_index()
+    
+    # 2. Effettuiamo il melt sul dataframe raggruppato
+    df_groups_melted = df_groups.melt(
+        id_vars=['group'], 
+        value_vars=['FN_test', 'TP_test', 'TP_train'],
+        var_name='metric', 
+        value_name='Frequency'
+    )
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # 3. Passaggio di x='group' anziché 'aa'
+    sns.barplot(
+        data=df_groups_melted, 
+        x='group', 
+        y='Frequency', 
+        hue='metric',
+        palette=palette, 
+        edgecolor='white', 
+        linewidth=1.2, 
+        ax=ax
+    )
+
+    # Etichette dentro/sopra le barre
+    for patch in ax.patches:
+        height = patch.get_height()
+        if pd.isna(height) or height == 0:
+            continue
+        ax.text(
+            patch.get_x() + patch.get_width() / 2, # Posizione X al centro della barra
+            height / 2, # Posizione Y a metà altezza della barra 
+            f'{height:.3f}', # Formattazione a 3 cifre decimali
+            ha='center', va='center',
+            rotation=90, 
+            fontsize=12, color='white', fontweight='bold'
+        )
+
+    # Pulizia estetica
+    ax.set_title('Amino Acid Groups Composition: FN_test vs TP_test vs TP_train', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xlabel('Amino Acid Group', fontsize=12, labelpad=10)
+    ax.set_ylabel('Frequency / Sum', fontsize=12, labelpad=10)
+
+    sns.despine(left=True, bottom=True)
+    ax.grid(axis='y', linestyle='--', alpha=0.4)
+    ax.set_axisbelow(True)
+
+    ax.legend(title='', frameon=False, loc='upper right', fontsize=11)
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/Bargraph_group_composition.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+
+
+
+
 #### OTHER FEATURES DISTRIBUTION ####
 feature_names_dict = {
     "max_kd": "Maximum Kyte-Doolittle Hydrophobicity",
@@ -233,14 +290,13 @@ def feature_distributions_boxplot(FN_id_test, TP_id_test, TP_id_train, df_featur
 
 
 
-
-
 if __name__ == '__main__':
-    argparser.add_argument('--output_model',  type=str, required=True, help='Path to the output model file')
-    argparser.add_argument('--fasta', type=str, required=True, help='Path to the fasta file containing the sequences of the von Heijne test set')
-    argparser.add_argument('--output_dir', type=str, required=True, help='path to the output directory')
-    argparser.add_argument('--original_df', type=str, required=True, help='Path to the original dataframe')
-    argparser.add_argument('--features_csv', type=str, required=True, help='Path to the csv file containing all the features')
+    argparser.add_argument('--output_model',  type=str, default=ROOT/'Models'/'SVM'/'SVM_pred_vs_test.csv', help='Path to the output model file')
+    argparser.add_argument('--fasta', type=str, default=ROOT/'Data_preparation'/'merged.fasta', help='Path to the merged fasta file containing all the sequences')
+    argparser.add_argument('--output_dir', type=str, default=ROOT/'Error_Analysis'/'svm', help='path to the output directory')
+    argparser.add_argument('--original_df', type=str, default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv', help='Path to the original dataframe')
+    argparser.add_argument('--features_csv', type=str, default=ROOT/'SVM_method'/'feature.csv', help='Path to the csv file containing all the features')
+    argparser.add_argument('--ordered_features_pos',nargs='+', type=int, default=[2, 13,  0, 26, 15,  1, 14, 10, 16,  9,  7,  5, 11, 12, 17,  3,  8, 31, 20,  4, 35, 24, 34, 19, 21, 28, 22, 32, 25, 33,  6, 29, 30, 18, 23], help='Insert the column position of the features (used by the svm model) ordered by importance, from most to less important. Write them separated by spaces.')
     args = argparser.parse_args()
 
     df_labels = pd.read_csv(args.output_model)
@@ -304,6 +360,7 @@ if __name__ == '__main__':
     #plt.show()
     plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
 
+    '''
     # Boxplots of the three distributions
     plt.figure(figsize=(8, 5))
     plt.boxplot([sp_length_FN, sp_length_TP, sp_length_TP_train], labels=['sp_length_FN', 'sp_length_TP', 'sp_length_TP_train'])
@@ -313,20 +370,13 @@ if __name__ == '__main__':
     plt.grid(True, linestyle='--', alpha=0.6)
     #plt.show()
     plt.savefig(f'{args.output_dir}/Boxplots_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
-
+    '''
 
     #### OTHER FEATURES DISTRIBUTIONS ####
-
-    feature_distributions_boxplot(FN_idx, TP_idx, TP_idx_train, df_features, 'max_kd', args.output_dir)
-    feature_distributions_boxplot(FN_idx, TP_idx, TP_idx_train, df_features, 'signal_max', args.output_dir)    
-
-
-
-
-
-
-
-
-
-
-
+    features_idx  = args.ordered_features_pos #--> list of feature positions in order of RF feature importance 
+    k = 3 # --> generate the boxplots for the first 3 most important features
+    for idx in range(0,k):
+        col = features_idx[idx] + 1 # --> because we do not consider the 1st column in df_features (=id)
+        feature = df_features.columns[col]
+        print(feature)
+        feature_distributions_boxplot(FN_idx, TP_idx, TP_idx_train, df_features, feature, args.output_dir) 
