@@ -201,7 +201,8 @@ if __name__=='__main__':
     df_pred = pd.DataFrame({
         'UniprotID': [item[2] for item in test_set_with_ID],
         'true_class': [item[1] for item in test_set_with_ID],
-        'pred_class': [int(score >= best_threshold) for score in y_test_scores]
+        'pred_class': [int(score >= best_threshold) for score in y_test_scores],
+        'scores':y_test_scores
     })
     df_pred.to_csv(out_dir / f'predictions.csv', index=False)
 

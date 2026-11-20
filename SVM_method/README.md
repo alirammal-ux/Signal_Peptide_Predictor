@@ -54,4 +54,17 @@ Only the 5 training folds of `Data_preparation/Cleaned_merged_dataset.tsv` are u
 
 ## Results
 
-*Pending: the nested cross-validation is being re-run with the current code.*
+
+| Test fold | mcc | hyperparams (k, C, γ) |
+|:---:|:---:|:---:|
+| 0 | 0.8655 | (35, 4, 0.0286) |
+| 1 | 0.8430 | (23, 16, 0.0217) |
+| 2 | 0.8584 | (33, 4, 0.0303) |
+| 3 | 0.8625 | (27, 4, 0.0185) |
+| 4 | 0.8442 | (27, 4, 0.0185) |
+
+
+| | |
+|:---:|:---:|
+|Average mcc | 0.8547 |
+| Standard deviation for mcc| 0.0094

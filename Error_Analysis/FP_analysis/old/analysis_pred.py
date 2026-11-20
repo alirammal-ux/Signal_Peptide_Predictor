@@ -228,7 +228,7 @@ def Helix_presence_norm(FP,data,output_dir, model_name):
 
 
 ### TAXA:
-#We can observe that the distribution of the false positive and negatives in all the taxas are pretty much similar, changing at most of 2%. 
+# We can observe that the distribution of the false positive and negatives in all the taxas are pretty much similar, changing at most of 2%. 
 
 
 #plot_taxa_norm_distribution(FP,FN,data)
@@ -270,12 +270,6 @@ def plot_species_all_distribution(FP,FN, TP, TN, data,output_dir, model_name):
 
     plt.rcParams["figure.figsize"] = (15,9)
 
-
-    n = 3
-    top = data['organism_name'].value_counts().head(n).index
-
-    # In "df[~df", the tilde operator means NOT!, and so is used in this scenario to filter out the top n organisms from the dataframe.  
-    data.loc[~data['organism_name'].isin(top), 'organism_name'] = 'Other'
     data['organism_name'] = data['organism_name'].replace('Saccharomyces cerevisiae (strain ATCC 204508 / S288c)', 
         'Saccharomyces cerevisiae'
     )
@@ -283,22 +277,29 @@ def plot_species_all_distribution(FP,FN, TP, TN, data,output_dir, model_name):
         'S. pombe'
     )
 
+    data_test = data.loc[data['fold']==-1]
+    n = 4
+    top = data_test['organism_name'].value_counts().head(n).index
+
+    # In "df[~df", the tilde operator means NOT!, and so is used in this scenario to filter out the top n organisms from the dataframe.  
+    data.loc[~data['organism_name'].isin(top), 'organism_name'] = 'Other'
+  
+
     Correctly_predicted = data.loc[data['ID'].isin(TP or TN)]['organism_name'].value_counts()
     FP_taxa=data.loc[data['ID'].isin(FP)]['organism_name'].value_counts()
     FN_taxa=data.loc[data['ID'].isin(FN)]['organism_name'].value_counts()
-
-    print(FN_taxa)
-    print(FP_taxa)
-    print(Correctly_predicted)
 
 
     
 
     taxa_df = pd.DataFrame({'False Positives': FP_taxa, 'False Negatives': FN_taxa, 'Correctly Predicted': Correctly_predicted})
 
+    print(taxa_df)
+
     taxa_df_normalized = taxa_df.div(taxa_df.sum(axis=1), axis=0) * 100
 
     ax= taxa_df_normalized.plot(kind='bar', color=['red', 'blue', 'green'], alpha=0.5)
+
 
     for p in ax.patches:
         h = p.get_height()

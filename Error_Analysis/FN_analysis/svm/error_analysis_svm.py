@@ -9,7 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent   # Feature_Selection/
-ROOT = HERE.parent.parent                    # repository root
+ROOT = HERE.parent.parent.parent                    # repository root
 argparser = argparse.ArgumentParser(description="Script for SVM's FN analysis.")
 
 ##### AA COMPOSITION at N-TERM ######
@@ -293,7 +293,7 @@ def feature_distributions_boxplot(FN_id_test, TP_id_test, TP_id_train, df_featur
 if __name__ == '__main__':
     argparser.add_argument('--output_model',  type=str, default=ROOT/'Models'/'SVM'/'SVM_pred_vs_test.csv', help='Path to the output model file')
     argparser.add_argument('--fasta', type=str, default=ROOT/'Data_preparation'/'merged.fasta', help='Path to the merged fasta file containing all the sequences')
-    argparser.add_argument('--output_dir', type=str, default=ROOT/'Error_Analysis'/'svm', help='path to the output directory')
+    argparser.add_argument('--output_dir', type=str, default=ROOT/'Error_Analysis/FN_analysis/svm', help='path to the output directory')
     argparser.add_argument('--original_df', type=str, default=ROOT/'Data_preparation'/'Cleaned_merged_dataset.tsv', help='Path to the original dataframe')
     argparser.add_argument('--features_csv', type=str, default=ROOT/'SVM_method'/'feature.csv', help='Path to the csv file containing all the features')
     argparser.add_argument('--ordered_features_pos',nargs='+', type=int, default=[2, 13,  0, 26, 15,  1, 14, 10, 16,  9,  7,  5, 11, 12, 17,  3,  8, 31, 20,  4, 35, 24, 34, 19, 21, 28, 22, 32, 25, 33,  6, 29, 30, 18, 23], help='Insert the column position of the features (used by the svm model) ordered by importance, from most to less important. Write them separated by spaces.')
@@ -341,24 +341,27 @@ if __name__ == '__main__':
     sp_length_TP = data.loc[data["ID"].isin(TP_idx)]['cleavage_pos'].tolist()
     sp_length_TP_train = data.loc[data["ID"].isin(TP_idx_train)]['cleavage_pos'].tolist()
 
+
+
+
     # Linegraph of the three distribution by using KDE (Kernel Density Estimation)
     # kde computes the esimate kernel density, and this is necessary for correctly comparing the three lists in the same graph
     # because they have different length (= diff #seq)
-    plt.figure(figsize=(10, 6))
+    # plt.figure(figsize=(10, 6))
 
-    sns.kdeplot(sp_length_FN, label='FN (Test Set)', palette="rocket")
-    sns.kdeplot(sp_length_TP, label='TP (Test Set)', palette="rocket")
-    sns.kdeplot(sp_length_TP_train, label='TP (Train Set)', palette="rocket")
+    # sns.kdeplot(sp_length_FN, label='FN (Test Set)', palette="rocket")
+    # sns.kdeplot(sp_length_TP, label='TP (Test Set)', palette="rocket")
+    # sns.kdeplot(sp_length_TP_train, label='TP (Train Set)', palette="rocket")
 
-    plt.title('Comparison of signal peptide length distributions', fontsize=14)
-    plt.xlabel('Length (aa)', fontsize=12)
-    plt.ylabel('Density', fontsize=12)
-    plt.legend(fontsize=11)
-    plt.grid(True, linestyle='--', alpha=0.5)
+    # plt.title('Comparison of signal peptide length distributions', fontsize=14)
+    # plt.xlabel('Length (aa)', fontsize=12)
+    # plt.ylabel('Density', fontsize=12)
+    # plt.legend(fontsize=11)
+    # plt.grid(True, linestyle='--', alpha=0.5)
 
-    plt.tight_layout()
-    #plt.show()
-    plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
+    # plt.tight_layout()
+    # #plt.show()
+    # plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
 
     '''
     # Boxplots of the three distributions
@@ -371,6 +374,43 @@ if __name__ == '__main__':
     #plt.show()
     plt.savefig(f'{args.output_dir}/Boxplots_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
     '''
+
+    #histplot
+
+    
+    data_hist=pd.DataFrame({
+        'len_sp':sp_length_FN+sp_length_TP+sp_length_TP_train,
+        'set': ['FN' for i in sp_length_FN]+['TP' for i in sp_length_TP]+['TP_Train' for i in sp_length_TP_train]
+    })
+
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data_hist,
+                 hue='set',
+                 x='len_sp',
+                 common_norm=False,
+                 stat='probability',
+                 kde=True,
+                palette = {'TP_Train': "#1D27E7", 'TP': "#FFC106", 'FN': "#DE1010"},   
+                alpha=0.4,
+                 line_kws={'linewidth': 2},
+                 linewidth=0.20,
+                 multiple='dodge',
+                 binwidth=3,  
+                 shrink=0.85,
+
+)
+    plt.title('Comparison of signal peptide length distributions', fontsize=14)
+    plt.xlabel('Length (aa)', fontsize=12)
+    plt.ylabel('Probability', fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.5)
+
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig(f'{args.output_dir}/Linegraph_sp_length_dist.png',dpi=300, bbox_inches='tight', facecolor='white')
+
+
+    
+
 
     #### OTHER FEATURES DISTRIBUTIONS ####
     features_idx  = args.ordered_features_pos #--> list of feature positions in order of RF feature importance 

@@ -16,7 +16,7 @@ import argparse
 import joblib
 
 RANDOM_STATE = 0
-HERE = Path(__file__).resolve().parent   # Feature_Selection/
+HERE = Path(__file__).resolve().parent       # SVM/
 ROOT = HERE.parent.parent                    # repository root
 
 
@@ -41,7 +41,6 @@ def train_and_test(X_train, y_train, X_test, y_test, new_model, c, gamma):
     model.fit(scaler.transform(X_train), y_train)
     # 3. scale the test data with the SAME mean and std, predict, measure mcc
     y_pred = model.predict(scaler.transform(X_test))
-    
 
     return y_pred
 
@@ -128,8 +127,13 @@ def model_eval(name, family, select, grid, new_model,X,y,fold,verbose=True, stor
     # y_pred = train_and_test(X_train.iloc[:, cols], y_train, X_test.iloc[:, cols], y_test, new_model, c, gamma) #--> train a new model with the subset of best features, then test it on validation fold
     y_pred = model.predict(scaler.transform(X_test.iloc[:, cols]))
 
+    # STEP 4 - retrive the scores used in the predictions
+    y_score = model.decision_function(scaler.transform(X_test.iloc[:, cols]))
 
-    return y_test,y_pred,test_idx,k,c,gamma,model,scaler,cols
+    return y_test, y_pred, test_idx, k, c, gamma, model, scaler, cols, y_score
+
+
+
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description='final training and evaluation of the svm')
@@ -139,7 +143,6 @@ if __name__ == "__main__":
     parser.add_argument('--v',default='y',type=str,help='create a file SVM_performance.txt in the currend dir with a verbose description of the model performance')
     args=parser.parse_args()
     
-
 
     X=pd.read_csv(args.X) 
 
@@ -179,7 +182,7 @@ if __name__ == "__main__":
 
     
 
-    y_test, y_pred, test_idx, k, c, gamma, final_model, final_scaler, features = model_eval("SVM", "SVM", select_rf, GRID, new_svm,X,y,fold,verbose=True, store=True)
+    y_test, y_pred, test_idx, k, c, gamma, final_model, final_scaler, features, y_score = model_eval("SVM", "SVM", select_rf, GRID, new_svm,X,y,fold,verbose=True, store=True)
 
     mcc, f1, cm, precision, recall, bal_acc= performance_metrics(y_test, y_pred)
 
@@ -191,10 +194,11 @@ if __name__ == "__main__":
     joblib.dump(final_scaler, scaler_output_path)
     print(f"Modello salvato con successo in: {model_output_path}")
 
+    print(y_pred)
     with open(args.out, 'w') as f:
-        f.write('UniprotID,true_class,pred_class\n')
+        f.write('UniprotID,true_class,pred_class,pred_score\n')
         for i in range(len(test_idx)):
-            f.write(f'{df.iloc[test_idx[i]]["ID"]},{y_test.iloc[i]},{y_pred[i]}\n')
+            f.write(f'{df.iloc[test_idx[i]]["ID"]},{y_test.iloc[i]},{y_pred[i]},{y_score[i]}\n')
 
     if args.v=='y':
         with open(HERE/'SVM_performance.txt', 'w') as f:

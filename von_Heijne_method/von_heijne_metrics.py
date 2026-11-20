@@ -35,11 +35,11 @@ def count(fasta,data,j):
                 seq = fasta.readline().strip()
 
                 #lista per split 
-                fold_train=[(i+j)%5 for i in range(2,5)]
+                fold_train=[(i+j)%5 for i in range(2,5)] #--> train folds are the next 3 folds after j+1 (if j=4, train={0,1,2} => immagin the fold labels 0,1,2,3,4 as circular)
                 
                 if fold in fold_train and clas==1: 
                     cleavage_site_train.append(seq[start_pos:end_pos])
-                elif fold==(j+1)%5:
+                elif fold==(j+1)%5: #--> validation fold is the next fold after j (=> circular way)
                     seq_val.append((seq,clas))
                 elif fold==j:
                     # print('è entrato')
@@ -222,7 +222,7 @@ if __name__=='__main__':
             
 
     #save df 
-    df_metrics.to_csv(out_dir/'vom_heijne_metrics.csv')
+    df_metrics.to_csv(out_dir/'von_heijne_metrics.csv')
 
     se_metrics=df_metrics[df_metrics.columns].std(axis=0)/np.sqrt(len(df_metrics))
     avg_metrics=df_metrics[df_metrics.columns].mean(axis=0)
@@ -233,5 +233,6 @@ if __name__=='__main__':
     with open(out_dir / 'k_fold_stats.csv', 'w') as file:
         print('metric,mean,se', file=file)
         for metric in df_metrics.columns:
-            print(f'{metric},{avg_metrics[metric]:.4f},{se_metrics[metric]:.4f}', file=file)
+            if metric not in ['tp', 'tn', 'fp', 'fn']:
+                print(f'{metric},{avg_metrics[metric]:.4f},{se_metrics[metric]:.4f}', file=file)
 

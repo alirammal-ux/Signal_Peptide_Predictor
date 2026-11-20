@@ -7,14 +7,47 @@ On the benchmarking set, we analyse the prediction errors in detail:
 
 ## 1. General analysis
 
+| Model | mcc | precision | recall | f1 | balanced accuracy |
+|---|---|---|---|---|---|
+| Von Heijne | 0.6771 | 0.6891 | 0.7421 | 0.7146 | 0.8496 |
+| SVM | 0.8944 | 0.9167 | 0.8959 | 0.9062 | 0.9427 |
+
+<p>
+    <img src="./FP_analysis/benchmarking_spider_plot.png" width="40%">
+</p>
+
+
 ### Confusion matrices
-=> TODO: fare grafico heatmap delle confusionmatrices
+
+<p>
+    <img src="./FP_analysis/vhm_cm.png" width="30%">
+</p>
+
+<p>
+    <img src="./FP_analysis/vhm_cm.png" width="30%">
+</p>
+
 
 ### FP and FN distribution among taxa
-=> GRAFICI PAOLO
+
+<p>
+    <img src="./FP_analysis/vhm_pieplot_Taxa_dist.png" width="60%">
+</p>
+
+<p>
+    <img src="./FP_analysis/svm_pieplot_Taxa_dist.png" width="60%">
+</p>
 
 ### FP and FN distribution among species
-=> GRAFICI DI PAOLO
+
+<p>
+    <img src="./FP_analysis/vhm_pieplot_Species_dist.png" width="60%">
+</p>
+
+<p>
+    <img src="./FP_analysis/svm_pieplot_Species_dist.png" width="60%">
+</p>
+
 
 ## 2. False Positive analysis
 Many FPs are due to a hydrophobic transmembrane (TM) helix at the protein N-terminus. To understand the impact of this feature:
@@ -26,7 +59,7 @@ FPR_tm = FP_tm / (FP_tm + TN_tm)
 
 | Model | FPR | FPR_tm |
 |---|---|---|
-| Von Heijne | | |
+| Von Heijne | 0.0408 | 0.1887 |
 | SVM | 0.0094 | 0.1132 |
 
 Comparing FPR and FPR of proteins with a TM helix in the first 90 residues it can be observed that they differ from a factor of almost 10. This means that the model is 10 times more likely to wrongly call a positive, which should be classified as negative, if it contains a transmembrane helix. 
@@ -40,10 +73,13 @@ For all FNs in the benchmark, we compute the corresponding sequence LOGO, then w
 
 Possible problem: if the number of FN is low, the obtained sequence LOGO will be negativelly affected since for sequence LOGO more sequences we have better it is.
 
-![alt text](von_Heijne/cleavage_region_positive.png)
+<p>
+    <img src="./FN_analysis/von_Heijne/cleavage_region_positive.png" width="50%">
+</p>
 
-
-![alt text](von_Heijne/cleavage_region_FN.png)
+<p>
+    <img src="./FN_analysis/von_Heijne/cleavage_region_FN.png" width="50%">
+</p>
 
 
 ### SVM - FN analysis
@@ -54,21 +90,27 @@ If the number of FN is high, it means that there is a problem in the feature ext
 #### N-terminal composition (with the selected K)
 FNs may have a different composition of the N-terminal region (selected K). We compare compositions up to K residues across the three groups (FN in benchmark set, TP in benchmark set, TP in train set).
 
-![alt text](svm/Bargraph_aa_composition.png)
+<p>
+    <img src="./FN_analysis/svm/Bargraph_aa_composition.png" width="100%">
+</p>
 
 While FP between train and test is coherent, the graph shows a slightly different composition for non polar residues between the FP and TP.
 In particular, Alanine and Leucine, which are also known for beign important residues in the composition of the signal peptider are less represented, while the Proline shows an higher frequency. 
 
 #### Group composition
 
-![alt text](svm/Bargraph_group_composition.png  )
+<p>
+    <img src="./FN_analysis/svm/Bargraph_group_composition.png " width="70%">
+</p>
 
 To further analyze the overall distribution based on physical chemical properties was computed, showing that the frequencies are almos the same in TP for both train and test and FN of the test set. 
 
 #### Signal peptide length 
 FNs may have a longer or shorter SP than expected. We compare SP length distributions across the three groups (FN in benchmark set, TP in benchmark set, TP in train set).
 
-![alt text](svm/Linegraph_sp_length_dist.png)
+<p>
+    <img src="./FN_analysis/svm/Linegraph_sp_length_dist.png" width="80%">
+</p>
 
 
 
@@ -82,8 +124,14 @@ In our case, the 3 most important features are:
 
 We decide to visualize the three distributions using boxplot. What we expected to see is an higher similarity between TP in benchmark set and TP in train set, while the FN should be slightly different. 
 
-![alt text](svm/Boxplot_kd_len_dist.png)
+<p>
+    <img src="./FN_analysis/svm/Boxplot_kd_len_dist.png" width="50%">
+</p>
 
-![alt text](svm/Boxplot_signal_max_dist.png)
+<p>
+    <img src="./FN_analysis/svm/Boxplot_signal_max_dist.png" width="50%">
+</p>
 
-![alt text](svm/Boxplot_max_kd_dist.png)
+<p>
+    <img src="./FN_analysis/svm/Boxplot_max_kd_dist.png" width="50%">
+</p>

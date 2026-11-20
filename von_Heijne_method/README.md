@@ -60,28 +60,26 @@ From each positive training sequence we take the 15 residues around the cleavage
 
 | Metric | Mean ± SE |
 |---|---|
-| MCC | 0.692 ± 0.018 |
-| F1 | 0.725 ± 0.016 |
-| Precision | 0.708 ± 0.022 |
-| Recall | 0.752 ± 0.041 |
-| Accuracy | 0.936 ± 0.003 |
-
-*Values from the last run (`k_fold_stats.csv`); they will be refreshed after re-running the script with the current code.*
+| MCC | 0.6890 ± 0.0178 |
+| F1 | 0.6890 ± 0.0178 |
+| Precision | 0.7087 ± 0.0226 |
+| Recall | 0.7453 ± 0.0396 |
+| Accuracy | 0.9354 ± 0.0035 |
 
 Confusion matrices of the 5 runs (each row normalised to the true class):
 
 <p align="center">
-  <img src="confusion_matrix0.png" width="18%">
-  <img src="confusion_matrix1.png" width="18%">
-  <img src="confusion_matrix2.png" width="18%">
-  <img src="confusion_matrix3.png" width="18%">
-  <img src="confusion_matrix4.png" width="18%">
+  <img src="./confusion_matrix0.png" width="18%">
+  <img src="./confusion_matrix1.png" width="18%">
+  <img src="./confusion_matrix2.png" width="18%">
+  <img src="./confusion_matrix3.png" width="18%">
+  <img src="./confusion_matrix4.png" width="18%">
 </p>
 
 Spider plot of the metrics of each run and of their mean:
 
 <p align="center">
-    <img src="spider_plot.png" width="40%">
+    <img src="./spider_plot.png" width="40%">
 </p>
 
 The runs overlap: there is no significant difference between the folds.
