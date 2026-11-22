@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
 
     sns.kdeplot(data=X, x="scores", hue="category", hue_order=["TN", "FP", "FN", "TP"],
-            common_norm=False, fill=True, alpha=0.3, log_scale=False, cut=0, ax=ax)
+            common_norm=True, fill=True, alpha=0.3, log_scale=False, cut=0, ax=ax)
  
 
     ax.axvline(threshold, color="black", linestyle="--", linewidth=2)

@@ -2,8 +2,12 @@
 # No upper bounds: pip picks the newest versions compatible with the Python in use.
 numpy
 pandas
+requests
+pytorch
 scikit-learn>=0.24
 matplotlib
 seaborn
 biopython
 requests
+optuna
+mmseqs 

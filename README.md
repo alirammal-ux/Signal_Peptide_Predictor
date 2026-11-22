@@ -1,14 +1,14 @@
 # Signal Peptide Prediction in Eukaryotic Proteins
 
-LB2 project – Group 1. We predict whether a eukaryotic protein carries an N-terminal secretory **signal peptide (SP)**. The dataset is built from UniProtKB/Swiss-Prot, made non-redundant and split into a training and a hold-out test set; on it we compare a **von Heijne position-specific weight matrix (PSWM)** with a **support vector machine (SVM)** trained on physico-chemical features.
+LB2 project – Group 1. We predict whether a eukaryotic protein carries an N-terminal secretory **signal peptide (SP)**. The dataset is built from UniProtKB/Swiss-Prot, made non-redundant and split into a training and a hold-out test set; on it we compare a **von Heijne position-specific weight matrix (PSWM)** with a **support vector machine (SVM)** trained on physico-chemical features and a **convolutional neural network (CNN)** trained on one-hot encoded sequences.
 
-## Pipeline (FIXME: the structure can be kept but the nodes must modified to adapt to our pipeline)
+## Pipeline 
 Project work plan:
 1. Retrive relevant datasets from UniProtKB.
 2. Preprocess datasets for cross-validation and benchmarking.
 3. Analyze and visualize dataset statistics.
 4. Extract relevant features for classification.
-5. Implement von Heijne's algorithm and SVM classifier.
+5. Implement von Heijne's algorithm, SVM classifier and CNN classifier.
 6. Evaluates methods via cross-validation and blind test set.
 7. Discuss and report results.
 
@@ -20,8 +20,10 @@ flowchart LR
     D --> E[Build von Heijne model]
     C --> F[VALIDATION of SVM METHOD<br>Feature extraction<br>Feature selection with RF]
     F --> G[Build svm model]
+    C ---> I[CNN METHOD<br>One-hot encoding<br>Hyperparameter search with Optuna]
     E --> H[RESULTS ANALYSIS<br>error analysis]
     G --> H[RESULTS ANALYSIS<br>error analysis]
+    I --> H[RESULTS ANALYSIS<br>error analysis]
 ```
 
 ## Repository structure
@@ -32,8 +34,9 @@ flowchart LR
 | [`Data_preparation/`](Data_preparation/) | `Data_cleaning/remove_redundancy.py`, `datasplitting.py` | Removes redundancy (MMseqs2), splits training and test set, assigns the cross-validation folds |
 | [`Data_analysis/`](Data_analysis/) | one notebook per analysis | Amino acid composition, cleavage-site logos, protein and SP length, taxonomy |
 | [`von_Heijne_method/`](von_Heijne_method/) | `von_heijne_metrics.py` | PSWM baseline and its cross-validated evaluation for von Heijne method |
-| [`SVM_method/`](SVM_method/) | `feature_extraction.py`, `feature_selection.py` | Feature extraction, feature selection and SVM in nested cross-validation to evaluate the svm method (not using the) |
-| [`Models/`](Models/) | `SVM_final.py`, `von_heijne_metrics_final.py` | Train and test the two final models (svm, von heijne) for benchmarching. Use cross-validation to find hyperparameters. |
+| [`SVM_method/`](SVM_method/) | `feature_extraction.py`, `feature_selection.py` | Feature extraction, feature selection and SVM in nested cross-validation to evaluate the svm method |
+| [`Models/`](Models/) | `SVM_final.py`, `von_heijne_metrics_final.py`, `sigccn-pipeline-complete.ipynb` | Train and test the final models (svm, von heijne, cnn) for benchmarching. Use cross-validation to find hyperparameters. The CNN is in a notebook. |
+| [`Error_Analysis/`](Error_Analysis/) | `FP_analysis/`, `FN_analysis/`, `score_distributions/` | False positive and false negative analysis of the three models on the benchmark set |
 
 Each folder has its own README with the details.
 
@@ -64,9 +67,13 @@ All the later steps read `Data_preparation/Cleaned_merged_dataset.tsv`, one row 
 
 ## Methods
 
-**von Heijne (PSWM).** The 15 residues around the cleavage site (13 before, 2 after) of the positive training sequences give a log-odds matrix against the Swiss-Prot amino acid background, with pseudocount 1. A protein is scored by sliding the window over its first 90 residues and keeping the best score; the threshold is the one that maximises F1 on a validation fold.
+Final models (`Models/`): each one is trained on the whole training set and evaluated once on the hold-out test set.
 
-**SVM.** Each protein is described by 37 features: 17 come from sliding-window profiles of 9 AAindex scales (hydrophobicity, charge, helix and β-sheet propensity, volume, signal-sequence helical potential, flexibility, mutability) on the first 40 residues, and 20 are the amino acid composition of the first 22 residues (the median SP length in the training set).
+**von Heijne (PSWM).** The 15 residues around the cleavage site (13 before, 2 after) of the positive training sequences give a log-odds matrix against the Swiss-Prot amino acid background, with pseudocount 1. A protein is scored by sliding the window over its first 90 residues and keeping the best score, and it is predicted as SP if the score is above the threshold T = 9.26 (average of the best-F1 thresholds of the 5 cross-validation runs).
+
+**SVM.** Each protein is described by 37 features: 17 come from sliding-window profiles of 9 AAindex scales (hydrophobicity, charge, helix and β-sheet propensity, volume, signal-sequence helical potential, flexibility, mutability) on the first 40 residues, and 20 are the amino acid composition of the first 22 residues (the median SP length in the training set). The final model keeps the top k = 35 features by Random Forest importance and uses an RBF-kernel SVM with C = 4 and γ = 0.0143.
+
+**CNN.** Each sequence is one-hot encoded and zero-padded (or truncated) to a fixed length of 120 residues, giving a 120×20 matrix; a binary mask marks the real residues so that padding is ignored. The network has two convolutional blocks (Conv1D, ReLU, layer normalisation, dropout) acting as motif detectors for the n-, h- and c-regions: the first is a multi-kernel block with three sets of filters of different widths, the second has filters of width 9. Each block is followed by a max-pooling of width 2 (length 120 → 60 → 30). A global max-pooling (is a motif present anywhere?) and a global average-pooling (how widespread is it?) are computed in parallel over the real residues only and concatenated into a feature vector, which goes to a hidden layer of 64 ReLU neurons with dropout and to a single output neuron; a sequence is classified as SP with a fixed threshold of 0.5. The network is trained by minimising the average cross-entropy loss with the AdamW optimiser. Final configuration (see `Models/CNN/best_params.json`): 16 filters per branch with kernel widths of 5, 9 and 15 in the first layer (48 feature maps), 64 filters in the second layer, dropout rate 0.21, learning rate 5.0 × 10⁻³, weight decay 1.0 × 10⁻⁶, batch size 32 and 12 training epochs, for a total of 45,585 trainable parameters.
 
 ## Results obtained in the validation of the methods
 
@@ -86,13 +93,15 @@ SVM: A nested cross-validation on the 5 training folds chooses the number of fea
 
 von Heijne (`Models/vhm/von_heijne_metrics_final.py`).
 SVM (`Models/SVM/SVM_final.py`).
+CNN (`Models/CNN/sigccn-pipeline-complete.ipynb`).
 
 | Model | MCC | F1 | Precision | Recall | Accuracy |
 |---:|:---:|:---:|:---:|:---:|:---:|
 | Von Heijne | 0.677 | 0.714 | 0.689 | 0.742 | 0.933 (normal acc) |
 | SVM | 0.894 | 0.906 | 0.917 | 0.896 | 0.943 (balanced acc) |
+| CNN | 0.913 | 0.923 | 0.923 | 0.923 | 0.957 (balanced acc) |
 
-
+The SVM and the CNN clearly outperform the von Heijne method on the hold-out test set, and the CNN is the best-performing model on every metric.
 
 ## Data analysis highlights
 
@@ -115,36 +124,26 @@ The project needs Python 3.6 or later (it runs on Python 3.6.11 on the course VM
 
 ## How to run
 
-Scripts find their files relative to their own location, so they can be launched from any folder; the commands below are run from the repository root. Every intermediate file is in the repository, so you can start from any step.
+Scripts find their files relative to their own location, so they can be launched from any folder; the commands below are run from the repository root. Every intermediate file (including the MMseqs2 clustering output) is in the repository, so you can start from any step.
 
 ```bash
-# 1. Download the datasets from UniProtKB (needs internet; overwrites the TSV/FASTA files in Data_collection/)
-#    with -all the negative output prefix comes first
+# 1. Data collection (needs internet)
 python3 Data_collection/data_collection.py -all Data_collection/negative/negative_set Data_collection/positive_set
 
-# 2. Cluster each set with MMseqs2 (30% identity, 40% coverage)
-mmseqs easy-cluster Data_collection/positive_set.fasta Data_preparation/Data_cleaning/positive_set.cluster/cluster-results-positive tmp --min-seq-id 0.3 -c 0.4 --cov-mode 0 --cluster-mode 1
-mmseqs easy-cluster Data_collection/negative/negative_set.fasta Data_preparation/Data_cleaning/negative_set.cluster/cluster_result_negative tmp --min-seq-id 0.3 -c 0.4 --cov-mode 0 --cluster-mode 1
-
-# 3. Keep only the cluster representatives
-python3 Data_preparation/Data_cleaning/remove_redundancy.py Data_preparation/Data_cleaning/positive_set.cluster/cluster-results-positive_rep_seq.fasta Data_collection/positive_set.tsv Data_preparation/Data_cleaning/positive_set.clean
-python3 Data_preparation/Data_cleaning/remove_redundancy.py Data_preparation/Data_cleaning/negative_set.cluster/cluster_result_negative_rep_seq.fasta Data_collection/negative/negative_set.tsv Data_preparation/Data_cleaning/negative_set.clean
-
-# 4. Training/test split and folds -> Data_preparation/Cleaned_merged_dataset.tsv
+# 2. Training/test split and folds -> Data_preparation/Cleaned_merged_dataset.tsv
 python3 Data_preparation/datasplitting.py Data_preparation/Data_cleaning/positive_set.clean Data_preparation/Data_cleaning/negative_set.clean
 
-# 5. One FASTA with all the non-redundant sequences (negatives first), read by the next steps
-cat Data_preparation/Data_cleaning/negative_set.cluster/cluster_result_negative_rep_seq.fasta \
-    Data_preparation/Data_cleaning/positive_set.cluster/cluster-results-positive_rep_seq.fasta \
-    > von_Heijne_method/merged.fasta
-
-# 6. von Heijne method: metrics, confusion matrices and spider plot in von_Heijne_method/
+# 3. von Heijne: cross-validation, then final model
 python3 von_Heijne_method/von_heijne_metrics.py --cm y --spider y
+python3 Models/vhm/von_heijne_metrics_final.py
 
-# 7. SVM: features -> Feature_Selection/feature.csv, nested cross-validation -> Feature_Selection/results_svm_rf.txt (long run)
-python3 Feature_Selection/feature_extraction.py
-python3 Feature_Selection/feature_selection.py
+# 4. SVM: features, nested cross-validation (long run), then final model
+python3 SVM_method/feature_extraction.py
+python3 SVM_method/feature_selection.py
+python3 Models/SVM/SVM_final.py
 ```
+
+**CNN.** The CNN is in the notebook `Models/CNN/sigccn-pipeline-complete.ipynb`. It has to be run on [Kaggle](https://www.kaggle.com/) and it needs a GPU (enable it in the notebook settings).
 
 The background amino acid frequencies used by the PSWM (`Data_analysis/aa_composition_plots/background_freq.tsv`) are computed by `aa_compositions.ipynb` from the Swiss-Prot composition statistics. The notebooks locate the repository root by themselves, so they work wherever the repository is cloned.
 
