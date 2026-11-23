@@ -5,8 +5,6 @@ Baseline predictor: a position-specific weight matrix (PSWM) built on the region
 | File | Content |
 |---|---|
 | `von_heijne_metrics.py` | the whole procedure: 5 runs, metrics, confusion matrices, spider plot |
-| `matrix.ipynb` | the same procedure step by step (the notebook used to develop it) |
-| `spiderplot.ipynb` | spider plot from `vom_heijne_metrics.csv` |
 | `merged.fasta` | all the non-redundant sequences (negative, then positive representatives) |
 | `vom_heijne_metrics.csv` | metrics of each run |
 | `k_fold_stats.csv` | mean and standard error of each metric over the 5 runs |

@@ -1,6 +1,6 @@
 # Data preparation
 
-From the two raw sets in `Data_collection/` to the non-redundant, labelled and split dataset read by all the later steps, `Cleaned_merged_dataset.tsv`. All commands are run from the repository root.
+In order to pass from the two raw sets in `Data_collection/` to the non-redundant, labelled and split dataset read by all the later steps, (`Cleaned_merged_dataset.tsv`), data cleaning and data preparation steps must be done. All commands are run from the repository root.
 
 ## 1. Redundancy reduction with MMseqs2
 
@@ -49,11 +49,11 @@ Both steps use the random seed 42, so the split is reproducible.
 
 | Fold | Positives | Negatives | Total |
 |---|---:|---:|---:|
+| 0 | 177 | 1380 | 1557 |
 | 1 | 177 | 1380 | 1557 |
-| 2 | 177 | 1380 | 1557 |
+| 2 | 176 | 1380 | 1556 |
 | 3 | 176 | 1380 | 1556 |
-| 4 | 176 | 1380 | 1556 |
-| 5 | 177 | 1379 | 1556 |
+| 4 | 177 | 1379 | 1556 |
 | Test (−1) | 221 | 1725 | 1946 |
 
 The test set is not used by any step so far: it is kept for the final comparison of the methods.

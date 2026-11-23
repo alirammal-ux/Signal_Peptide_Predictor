@@ -8,7 +8,7 @@ Before training any model we checked that the dataset is biologically sensible a
 | Cleavage site | `seq_logo_cleavage_region/cleavage_site.ipynb` | `cleavage_region_train.txt`, `cleavage_region_test.txt`, then the logos made with WebLogo |
 | Protein length | `Prot_Len/protein_lengths.ipynb` | `Protein_Length_hist_dens.svg`, `Protein_Length_box.svg` |
 | SP length | `SP_len/SP_length.ipynb` | `SP_length_by_fold.svg`, `SP_length_by_kingdom.svg`, `SP_len_seq_len.svg` |
-| Taxonomy | `Taxonomy_analysis/taxonomy.ipynb` | `Kindom_Distribution`, `Species`, `Kingdom_Percentages_by_Fold`, `Kingdom_Percentages_by_Class`, `Species_Percentages_by_Class` (.png and .svg) |
+| Taxonomy | `Taxonomy_analysis/taxonomy.ipynb` | `Kindom_Distribution.png`, `Species.png`, `Kingdom_Percentages_by_Fold.png`, `Kingdom_Percentages_by_Class.png`, `Species_Percentages_by_Class.png` |
 
 ## 1. Amino acid composition
 
@@ -31,11 +31,11 @@ From every positive sequence we extracted the region around the cleavage site, f
 
 Training set:
 
-![Sequence logo of the cleavage region, training set](./seq_logo_cleavage_region/seq_logo_cleavage_region_train.svg)
+![Sequence logo of the cleavage region, training set](./seq_logo_cleavage_region/seq_logo_cleavage_region_train.png)
 
 Test set:
 
-![Sequence logo of the cleavage region, test set](./seq_logo_cleavage_region/seq_logo_cleavage_region_test.svg)
+![Sequence logo of the cleavage region, test set](./seq_logo_cleavage_region/seq_logo_cleavage_region_test.png)
 
 The two logos are very similar. Small hydrophobic residues (mostly leucine, then alanine and valine) dominate the first seven positions, positions 9 and 10 are not conserved, and positions 11–13 (−3 to −1) show the **AXA motif** that precedes the cleavage site.
 
@@ -78,22 +78,22 @@ There is no apparent correlation between the length of a protein and the length 
 
 We looked at the taxonomic distribution, at kingdom and species level, to make sure the fold split did not introduce imbalances.
 
-![Kingdom distribution](./Taxonomy_analysis/Kindom_Distribution.svg)
+![Kingdom distribution](./Taxonomy_analysis/Kingdom_Distribution.png)
 
 Kingdoms in the whole dataset (positives and negatives); organisms outside Metazoa, Viridiplantae (Plants) and Fungi are grouped as "Other". Metazoa are the largest group (54.6%), followed by Fungi (26.2%) and Plants (17.0%).
 
-![Species composition](./Taxonomy_analysis/Species.svg)
+![Species composition](./Taxonomy_analysis/Species.png)
 
-The six most represented species (*Homo sapiens*, *Saccharomyces cerevisiae*, *Arabidopsis thaliana*, *Mus musculus*, *Schizosaccharomyces pombe*, *Drosophila melanogaster*); the bar on the right splits the remaining sequences by kingdom.
+The six most represented species are: *Homo sapiens*, *Saccharomyces cerevisiae*, *Arabidopsis thaliana*, *Mus musculus*, *Schizosaccharomyces pombe*, *Drosophila melanogaster*; the bar on the right splits the remaining sequences by kingdom.
 
-![Kingdom distribution by fold](./Taxonomy_analysis/Kingdom_Percentages_by_Fold.svg)
+![Kingdom distribution by fold](./Taxonomy_analysis/Kingdom_Percentages_by_Fold.png)
 
 The kingdom proportions are almost identical in the five folds and in the test set.
 
-![Kingdom distribution by class](./Taxonomy_analysis/Kingdom_Percentages_by_Class.svg)
+![Kingdom distribution by class](./Taxonomy_analysis/Kingdom_Percentages_by_Class.png)
 
 The two classes have a different kingdom composition: Metazoa are 79% of the positives but 52% of the negatives, while Fungi are 9% of the positives and 28% of the negatives. A model could partly learn the kingdom instead of the signal peptide, which is worth keeping in mind when reading the results.
 
-![Species distribution by class](./Taxonomy_analysis/Species_Percentages_by_Class.svg)
+![Species distribution by class](./Taxonomy_analysis/Species_Percentages_by_Class.png)
 
 The same comparison for the six most represented species, with all the others grouped as "Other".

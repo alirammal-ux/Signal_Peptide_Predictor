@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import matthews_corrcoef, 
+from sklearn.metrics import matthews_corrcoef
 from pathlib import Path
 import argparse 
 

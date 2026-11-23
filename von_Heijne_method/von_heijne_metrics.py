@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 
 AA_keys="ACDEFGHIKLMNPQRSTVWY"
+N_TER=90
 HERE = Path(__file__).resolve().parent   # von_Heijne_method/
 ROOT = HERE.parent                       # root del repository
 
@@ -69,7 +70,7 @@ def create_pswm(train_set,freq):
 
 def score_seq(seq,pswm):
     best_win_score,pos_best=float('-inf'),0
-    final_pos=min(len(seq),90)-15
+    final_pos=min(len(seq),N_TER)-15
     
     #scorro sulla val_seq
     for i in range(0,final_pos+1):

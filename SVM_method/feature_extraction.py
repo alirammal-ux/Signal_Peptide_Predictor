@@ -123,29 +123,6 @@ if __name__=='__main__':
             line=line.strip().split()
             dict_f[line[1]]=parse_aaindex_file(args.aaindex_file,line[0])
 
-    #Amino acid scale: Transmembrane tendency ProtScale, not present in the aaindex file, so we add it manually
-    dict_f['tt'] = {
-        'A':  0.380,  # Ala
-        'R': -2.570,  # Arg
-        'N': -1.620,  # Asn
-        'D': -3.270,  # Asp
-        'C': -0.300,  # Cys
-        'Q': -1.840,  # Gln
-        'E': -2.900,  # Glu
-        'G': -0.190,  # Gly
-        'H': -1.440,  # His
-        'I':  1.970,  # Ile
-        'L':  1.820,  # Leu
-        'K': -3.460,  # Lys
-        'M':  1.400,  # Met
-        'F':  1.980,  # Phe
-        'P': -1.440,  # Pro
-        'S': -0.530,  # Ser
-        'T': -0.320,  # Thr
-        'W':  1.530,  # Trp
-        'Y':  0.490,  # Tyr
-        'V':  1.460,  # Val
-    }
 
 
     #For each sequence in the fasta file, extract all the features and save them in a cvs file

@@ -1,6 +1,3 @@
-
-
-
 from sklearn.model_selection import train_test_split,StratifiedKFold
 import pandas as pd
 import numpy as np
@@ -12,14 +9,14 @@ random_seed=42
 HERE = Path(__file__).resolve().parent   # Data_preparation/: the output files are written here
 
 if len (argv) < 3 :
-  print("usage: python3 datasplitting.py <positive_set.clean> <negative_set.clean>")
+  print("usage: python3 datasplitting.py <positive_set.clean> <negative_set.clean>") # input files (output of remove_redundancy.py)
   exit()
 else:
   d1 = argv[1]
   d2 = argv[2]
 
 
-
+# 1. Assign a label to each column and concatenate pos and negative dataframes
 column_names = ["class", "ID", "organism_name", "kingdom", "length", "cleavage_pos", "early_trans"]
 
 
@@ -28,12 +25,10 @@ negative = pd.read_csv(d2, sep="\t", header = None, names = column_names)
 
 df = pd.concat([positive, negative], ignore_index=True)
 
-
-
 y = df['class']
 X = df.drop(['class'], axis=1)
 
-"""# **Splitting into train(0.8) and test(0.2)**"""
+# 2. Splitting into train (=0.8) and test (=0.2)
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
@@ -43,7 +38,10 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=random_seed
     )
 
+# 3. Splitting training set into 5 folds
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_seed)
+
+# 4. Create new column for fold labels and for each entry assign the corresponding fold label
 df['fold'] = -1
 
 for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train), start=1):
@@ -55,8 +53,5 @@ for fold_idx, (train_index, val_index) in enumerate(skf.split(X_train, y_train),
 
     df.loc[actual_val_indices, 'fold'] = fold_idx
 
+# 5. Save all files
 df.to_csv(HERE/'Cleaned_merged_dataset.tsv', sep="\t",index=False)
-X_train.to_csv(HERE/'X_train.tsv', sep="\t")
-X_test.to_csv(HERE/'X_test.tsv', sep="\t")
-y_train.to_csv(HERE/'y_train.tsv', sep="\t")
-y_test.to_csv(HERE/'y_test.tsv', sep="\t")

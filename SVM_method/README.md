@@ -6,7 +6,6 @@
 | `aaindex_parse.py` | reads one scale from the AAindex1 database file |
 | `aaindex1`, `AAindex_scales.txt` | the AAindex1 database and the list of scales used (AAindex ID, short name, description) |
 | `feature_selection.py` | feature selection and SVM in nested cross-validation, writes `results_svm_rf.txt` |
-| `feature_extraction.ipynb`, `feature_sel.ipynb` | the same code in notebook form |
 
 ## How to run
 
@@ -35,8 +34,6 @@ All profiles are computed on the first 40 residues with a sliding window: each r
 
 Positions are divided by 40, so they range from 0 to 1. These are 17 features; the other 20 are the **amino acid composition of the first 22 residues**, as frequencies (22 is the median SP length in the training set, the same in every cross-validation split; non-standard residues are not counted). In total each protein has 37 features.
 
-The ProtScale *transmembrane tendency* scale is also loaded (`dict_f['tt']`), but no feature uses it yet.
-
 ## Nested cross-validation
 
 Only the 5 training folds of `Data_preparation/Cleaned_merged_dataset.tsv` are used; the hold-out test set is not touched. `feature.csv` and the dataset are sorted by UniProt ID and checked to contain the same proteins, so that each row of the features matches its class and fold.
@@ -44,7 +41,7 @@ Only the 5 training folds of `Data_preparation/Cleaned_merged_dataset.tsv` are u
 - **Outer loop** (5 iterations): one fold is the outer test fold, the other four are the training part.
 - **Inner loop** (4 iterations on the training part): every setting of the grid is trained on three folds and evaluated on the fourth; the setting with the best mean MCC is chosen (ties go to the smallest *k*).
 - A setting is a triple (*k*, *C*, γ):
-  - *k*: number of features kept, from 11 to 35 in steps of 2; they are the top *k* features by Random Forest (100 trees) Gini importance, computed on the training data of that iteration only;
+  - *k*: number of features kept, from 11 to total number of features in steps of 2; they are the top *k* features by Random Forest (100 trees) Gini importance, computed on the training data of that iteration only;
   - *C* ∈ {1, 4, 10, 16};
   - γ ∈ {0.5/*k*, 1/*k*, 2/*k*, 4/*k*} for the RBF kernel.
 - With the chosen setting, the features are selected again on the whole training part, the SVM is trained on it and evaluated once on the outer test fold.

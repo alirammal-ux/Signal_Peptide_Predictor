@@ -42,7 +42,7 @@ def performance_FPR_analysis(y_true, y_pred, TP, TN, FP, FN, data, model, output
     
     # 1. Compute FPR (both tot and for only TM)
     FPR_tm=len(FP_tm)/(len(FP_tm)+len(TN_tm))
-    FPR_tot=len(FP)/(len(TP)+len(TN))
+    FPR_tot=len(FP)/(len(FP)+len(TN))
     
 
     # Write result in output file

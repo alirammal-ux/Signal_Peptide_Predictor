@@ -15,6 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--data', required=True, type=str, help = 'Path to the input file containing predictions and scores')
     parser.add_argument('--out', type=str, help='Name of the output plot file')
     parser.add_argument('--threshold',type=float,help='Threshold used for the classification')
+    parser.add_argument('--model', type=str, help='Name of the model')
     
     args=parser.parse_args()
 
@@ -32,8 +33,12 @@ if __name__ == "__main__":
      (X["true_class"] == 1) & (X["pred_class"] == 1)],
     ["TN", "FP", "FN", "TP"])
 
+    
+
+
     threshold = args.threshold
     output_file = args.out
+    model = args.model
 
     fig, ax = plt.subplots(figsize=(9, 5))
 
@@ -43,7 +48,7 @@ if __name__ == "__main__":
  
 
     ax.axvline(threshold, color="black", linestyle="--", linewidth=2)
-    ax.set_title("Distribution of VHM method decision scores by confusion matrix category")
+    ax.set_title(f"Distribution of {model} method decision scores by confusion matrix category")
     ax.set_yscale("function", functions=(np.sqrt, np.square))
     #ax.set_xlim(-10, 20)
 
@@ -52,8 +57,9 @@ if __name__ == "__main__":
     plt.close() 
 
     # for execute
-    # python score_analysis.py --data /home/um40/LB2_project_Group_1/Models/vhm/predictions.csv --out graph_vhm.png --threshold 9.268752841808581
-    # python score_analysis.py --data /home/um40/LB2_project_Group_1/Models/SVM/SVM_pred_vs_test.csv --out graph_svm.png --threshold 0
+    # python score_analysis.py --data /home/um40/LB2_project_Group_1/Models/vhm/predictions.csv --out graph_vhm.png --threshold 9.268752841808581 --model VHM
+    # python score_analysis.py --data /home/um40/LB2_project_Group_1/Models/SVM/SVM_pred_vs_test.csv --out graph_svm.png --threshold 0 --model SVM
+    # python score_analysis.py --data /home/um40/LB2_project_Group_1/Models/CNN/test_predictions.csv --out graph_cnn.png --threshold 0.5 --model CNN
 
 
 
