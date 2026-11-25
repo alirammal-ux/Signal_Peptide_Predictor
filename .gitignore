@@ -7,3 +7,5 @@ __pycache__/
 
 # MMseqs2 temporary folders
 tmp*/
+
+.vscode/
